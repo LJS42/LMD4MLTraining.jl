@@ -1,0 +1,13 @@
+name = "LMD4MLTraining"
+uuid = "916db72f-d5ae-442a-ab7c-396ee51ba326"
+authors = ["Group"]
+version = "1.0.0-DEV"
+
+[compat]
+julia = "1.12"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
