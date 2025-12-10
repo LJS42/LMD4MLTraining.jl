@@ -154,27 +154,33 @@ end
 
 main()
 
-# So Flux seems to provide the AbstractMetric type
-# and will call these methods for every configured metric
+# There seem to be 3 ways of hooking into Flux
+# 1. Generic custom callbacks
+# There are 4 things you need to do to implement a custom callback:
+#  Create a callback struct that subtypes Callback
 #
-# Called once before training starts.
-# function setup_viz!(metric::AbstractMetric, layout_slot)
-# ...
-# end
-
-# Called every batch.
-# 'state' contains {model, x, y, y_pred, loss, grads, step_index}
-# function on_batch_end!(metric::AbstractMetric, state)
-# ...
-# end
-
-# Called every epoch.
-# 'state' contains {model, val_loader, epoch_index}
-# function on_epoch_end!(metric::AbstractMetric, state)
-# ...
-# end
+#  Write event handlers with on
 #
-# I think we can just build upon this type, extract the data, push it through channels,
+#  Define what state the callback accesses by implementing stateaccess
+#
+#  (Optionally) define dependencies on other callbacks with runafter
+#
+# 2. Metric
+# There are some pre-defined and then exposed here
+# learner.cbstate.metricsstep
+# learner.cbstate.metricsepoch
+# These might be extractable using custom callbacks i.e on step, on epoch
+#
+# 3. AbstractMetric
+# Exposes this interface
+#  reset!(metric)
+#  step!(metric, learner)
+#  stepvalue(metric)
+#  epochvalue(metric)
+#  metricname(metric)
+# and puts the data in the same place as aforementioned.
+#
+# # I think we can just build on these types, extract the data, push it through channels,
 # compute, and then visualize (similar to the render loop here).
 # It probably would make sense to define data structures that will go through these channels per-metric as well.
 # From the project structure it also seems to me like we want the decouple the data/compute and visualize part?
