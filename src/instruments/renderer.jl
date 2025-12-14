@@ -33,30 +33,24 @@ function render_loop(
 )
     fig, observables, axs = setup_plots(quantities)
 
-    fps = 30
     quantity_data = Dict{Symbol,Vector{Point2f}}()
+    for (key, obs) in observables
+        quantity_data[key] = obs[]
+    end
 
-    Timer(1/fps, interval=1/fps) do t
-        has_new_data = false
-
-        while isready(channel)
-            step, received_quantities = take!(channel)
-            for (key, value) in received_quantities
-                if haskey(quantity_data, key)
-                    data = get!(quantity_data, key, Point2f[])
-                    push!(data, Point2f(step, value))
-                end
+    for (step, received_quantities) in channel
+        for (key, value) in received_quantities
+            if haskey(quantity_data, key)
+                data = quantity_data[key]
+                push!(data, Point2f(step, value))
             end
-            has_new_data = true
         end
 
-        if has_new_data
-            for (key, obs) in observables
-                obs[] = get!(quantity_data, key, Point2f[])
-            end
-            for (key, ax) in axs
-                autolimits!(ax)
-            end
+        for (key, obs) in observables
+            obs[] = quantity_data[key]
+        end
+        for (key, ax) in axs
+            autolimits!(ax)
         end
     end
 end
