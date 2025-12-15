@@ -20,8 +20,11 @@ function setup_plots(quantities::Vector{<:AbstractQuantity})
         observables[key] = obs
     end
 
+    # coverage: ignore
     WGLMakie.activate!()
+    # coverage: ignore
     Bonito.browser_display()
+    # coverage: ignore
     display(fig)
 
     return fig, observables, axs

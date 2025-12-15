@@ -28,17 +28,17 @@ function Train!(
     with_plots::Bool,
 )
     ch = Channel{Tuple{Int,Dict{Symbol,Float32}}}(100)
-    train_task = @async train_loop!(
-        learner,
-        epochs,
-        ch,
-    )
+    train_task = @async train_loop!(learner, epochs, ch)
+
+    render_task = nothing
     if with_plots
         render_task = @async render_loop(ch, learner.quantities)
     end
 
     wait(train_task)
-    wait(render_task)
+    if render_task !== nothing
+        wait(render_task)
+    end
 end
 
 function train_loop!(
@@ -47,6 +47,7 @@ function train_loop!(
     channel::Channel{Tuple{Int,Dict{Symbol,Float32}}},
 )
     step_count = 0
+    # coverage: ignore start
     try
         for epoch in 1:epochs
             for (x, y) in learner.data_loader
@@ -69,4 +70,5 @@ function train_loop!(
     finally
         close(channel)
     end
+    # coverage: ignore end
 end
