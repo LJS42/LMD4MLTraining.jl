@@ -23,10 +23,11 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.12'
           - 'pre'
         os:
           - ubuntu-latest
+          - windows-latest
+          - macos-latest
         arch:
           - x64
     steps:
