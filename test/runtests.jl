@@ -29,10 +29,17 @@ end
     LMD4MLTraining.quantity_key(q::DummyQ) = q.key
 
     qlist = [DummyQ(:loss)]
+
     fig, obs, axs = LMD4MLTraining.setup_plots(qlist)
     @test isa(fig, Figure)
     @test isa(obs[:loss], Observable)
     @test isa(axs[:loss], Axis)
+
+    try
+        GLMakie.closeall()  
+    catch
+        
+    end
 end
 
 # render_loop
@@ -47,6 +54,8 @@ end
 
     try
         t = @async LMD4MLTraining.render_loop(ch, qlist)
+        sleep(0.1)
+        GLMakie.closeall()
         wait(t)
         @test true  
     catch e
