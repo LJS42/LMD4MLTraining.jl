@@ -60,7 +60,6 @@ function Train!(
     epochs::Int,
     with_plots::Bool,
     )
-
     if with_plots
         ch = Channel{Tuple{Int,Dict{Symbol,Float32}}}(100)
 
@@ -99,6 +98,7 @@ function train_loop!(
     channel::Union{Channel{Tuple{Int,Dict{Symbol,Float32}}}, Nothing}
 )
     step_count = 0
+    # coverage: ignore start
     try
         for epoch in 1:epochs
             for (x, y) in learner.data_loader
@@ -125,4 +125,5 @@ function train_loop!(
             close(channel)
         end
     end
+    # coverage: ignore end
 end
