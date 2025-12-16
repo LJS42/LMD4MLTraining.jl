@@ -30,7 +30,7 @@ end
 
     qlist = [DummyQ(:loss)]
 
-    fig, obs, axs = LMD4MLTraining.setup_plots(qlist)
+    fig, obs, axs = LMD4MLTraining.setup_plots(qlist; display = false)
     @test isa(fig, Figure)
     @test isa(obs[:loss], Observable)
     @test isa(axs[:loss], Axis)
@@ -53,7 +53,7 @@ end
     qlist = [LossQuantity()]
 
     try
-        t = @async LMD4MLTraining.render_loop(ch, qlist)
+        t = @async LMD4MLTraining.render_loop(ch, qlist; display = false)
         sleep(0.1)
         GLMakie.closeall()
         wait(t)
