@@ -73,7 +73,6 @@ function Train!(
         wait(train_task)
     end
     
->>>>>>> bd54c195afa12f14409f9aa4a110afb859724f2f
 end
 
 """
