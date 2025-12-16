@@ -2,7 +2,6 @@ using WGLMakie
 using Bonito
 using Statistics
 using Dates
-using Makie
 using Base.Threads
 
 """
@@ -33,7 +32,10 @@ Returns
 """
 
 function setup_plots(quantities::Vector{<:AbstractQuantity})
+    WGLMakie.activate!() #backend to render in browser with WebGL
+    Bonito.browser_display() #set up for figure display
     set_theme!(theme_black())
+
     fig = Figure(size=(1000, 600), fontsize=18)
     axs = Dict{Symbol,Axis}() 
     observables = Dict{Symbol,Observable}() 
@@ -46,9 +48,6 @@ function setup_plots(quantities::Vector{<:AbstractQuantity})
         lines!(ax, obs, color=:cyan) #draw plot
         observables[key] = obs #store observable for later update
     end
-
-    WGLMakie.activate!() #backend to render in browser with WebGL
-    Bonito.browser_display() #set up for figure display
     display(fig)
 
     return fig, observables, axs 
@@ -72,8 +71,8 @@ Args:
         stream of training updates (produced by training loop)
     quantities: Vector{<:AbstractQuantity}
         quantities defining which series to plot
-"""
 
+"""
 function render_loop(
     channel::Channel,
     quantities::Vector{<:AbstractQuantity},
