@@ -27,15 +27,15 @@ end
 
 function main()
     # Define quantities to track
-    quantities = [LossQuantity(), GradNormQuantity()]
+    quantities = [LossQuantity(), GradNormQuantity(), DistanceQuantity(), UpdateSizeQuantity(), NormTestQuantity()]
 
     model = get_model()
     data_loader = get_data_loader()
-    optim = Flux.setup(Adam(3.0f-4), model)
-    loss_fn(ŷ, y) = Flux.logitcrossentropy(ŷ, y)
+    optim = Flux.setup(Adam(3f-4), model)
+    loss_fn(ŷ, y) = vec(Flux.logitcrossentropy(ŷ, y; agg=identity))
     learner = Learner(model, data_loader, loss_fn, optim, quantities)
 
-    Train!(learner, 1, true)
+    Train!(learner, 1, false)
 
     println("Training finished.")
 end
