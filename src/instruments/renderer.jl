@@ -4,7 +4,6 @@ using Statistics
 using Dates
 using Base.Threads
 
-
 """
     setup_plots(quantities)  -> fig, observables, axs
 

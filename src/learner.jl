@@ -1,50 +1,39 @@
 using Flux
 using Logging
-
-"""
-    Learner 
-
-Object bundling together all information for training with cockpit. Mutable struct so that model parameters and optimizer state 
-can be updated in-place during training. 
-Fields:
-    model: Any
-        arquitecture which parameters should be optimised during training 
-    data_loader: Any
-        iterable that makes data batches accesible for training
-    loss_fn: Function
-        calculate the loss of the model w.t.r to training objective (returns scalar loss value)
-    optim: Any
-        optimizer chosen to update model parameters in the backward pass (e.g. Flux.Adam)
-    quantities: Vector{<:AbstractQuantity}
-        (optional) metrics computed every training step used for evakuation and diagnostic of model training
-"""
-mutable struct Learner
-    model::Any
-    data_loader::Any
+using Zygote
+using Statistics
+# """
+#     Learner 
+# Object bundling together all information for training with cockpit. Mutable struct so that model parameters and optimizer state 
+# can be updated in-place during training. 
+# Fields:
+#     model: M
+#         arquitecture which parameters should be optimized during training 
+#     data_loader: D
+#         iterable that makes data batches accessible for training
+#     loss_fn: Function
+#         calculate the loss of the model w.t.r to training objective (returns scalar loss value)
+#     optim: P
+#         optimizer chosen to update model parameters in the backward pass (e.g. Flux.Adam)
+#     quantities: Vector{<:AbstractQuantity}
+#         (optional) metrics computed every training step used for evakuation and diagnostic of model training
+# """
+mutable struct Learner{M, D, P}
+    model:: M
+    data_loader::D
     loss_fn::Function
-    optim::Any
-    quantities::Vector{<:AbstractQuantity}
-
-    function Learner(model, data_loader, loss_fn, optim, quantities)
-        new(model, data_loader, loss_fn, optim, quantities)
-    end
+    optim::P
+    quantities::Vector{AbstractQuantity}
 end
-#outer constructor to create a Learner object with a default empty quantity vector if the user does not pass in any quantities
-function Learner(
-    model,
-    data_loader,
-    loss_fn::Function,
-    optim
-)
-    return Learner(model, data_loader, loss_fn, optim, AbstractQuantity[])
-end
+Learner(model, data_loader, loss_fn::Function, optim) =
+    Learner(model, data_loader, loss_fn, optim, AbstractQuantity[])
 
 """
     Train!(learner, epochs, with_plots)
 
 train a Learner and render quantities (optinal). 
 when plotting desired: create channel to pass data from training loop to cockpit session:
-    - use put! to pass data into the channel (if full wait until space availiable, else add inmediately),
+    - use put! to pass data into the channel (if full wait until space availiable, else add immediately),
     - use take! to returm data from the channel (if channel is empty wait until data arrives, else retrieve inmediately). 
     
 Args:
@@ -98,18 +87,45 @@ function train_loop!(
     channel::Union{Channel{Tuple{Int,Dict{Symbol,Float32}}}, Nothing}
 )
     step_count = 0
-    # coverage: ignore start
+    params0 = [copy(p) for p in Flux.trainables(learner.model)]
+   
     try
         for epoch in 1:epochs
             for (x, y) in learner.data_loader
+                if step_count == 0
+                    params0 = [copy(p) for p in Flux.trainables(learner.model)]
+                end
                 step_count += 1
-                val, grads = Flux.withgradient(m -> learner.loss_fn(m(x), y), learner.model)
-                Flux.update!(learner.optim, learner.model, grads[1])
+                params_before = [copy(p) for p in Flux.trainables(learner.model)]
+
+                losses, back = Zygote.pullback(m -> learner.loss_fn(m(x), y), learner.model)
+                B = length(losses)
+                seed = fill(1 / B, B)
+                (grads,) = back(seed)
+            
+                Flux.update!(learner.optim, learner.model, grads)
+
+                params_after = [copy(p) for p in Flux.trainables(learner.model)]
+                params = (p0=params0, pb=params_before, pa=params_after)
+
+                if channel === nothing && step_count < 4
+                    loss = compute!(LossQuantity(), losses, back, grads, params)
+                    println("STEP ", step_count)
+                    println("Loss: ",loss)
+                    gradnorm = compute!(GradNormQuantity(), losses, back, grads, params)
+                    println("Gradient norm: ",gradnorm)
+                    distance = compute!(DistanceQuantity(), losses, back, grads, params)
+                    println("Distance: ",distance)
+                    updatesize = compute!(UpdateSizeQuantity(), losses, back, grads, params)
+                    println("Update size: ",updatesize)
+                    normtest = compute!(NormTestQuantity(), losses, back, grads, params)
+                    println("Norm test: ",normtest)
+                end
                 
                 if channel !== nothing
                     computed_quantities = Dict{Symbol,Float32}()
                     for q in learner.quantities
-                        value = compute!(q, val, grads[1])
+                        value = compute!(q, losses, back, grads, params)
                         computed_quantities[quantity_key(q)] = value
                     end
                     put!(channel, (step_count, computed_quantities))
@@ -125,5 +141,6 @@ function train_loop!(
             close(channel)
         end
     end
-    # coverage: ignore end
+ 
 end
+
