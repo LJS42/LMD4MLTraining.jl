@@ -1,6 +1,15 @@
 # API Reference
 
 ```@docs
-Session
-train_with_cockpit
-show_cockpit
+Learner
+train_learner!
+train_loop!
+render_loop
+compute
+AbstractQuantity
+DistanceQuantity
+GradNormQuantity
+UpdateSizeQuantity
+NormTestQuantity
+GradHist1dQuantity
+```

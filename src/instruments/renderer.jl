@@ -1,9 +1,3 @@
-using WGLMakie
-using Bonito
-using Statistics
-using Dates
-using Base.Threads
-
 """
     setup_plots(quantities)  -> fig, observables, axs
 
@@ -18,17 +12,16 @@ The y-axis is displayed on a log10 scale to support values spanning orders
 of magnitude (e.g. losses).
 
 Args
-    quantities: Vector{<:AbstractQuantity}
-        objects defining quantities/metrics to plot
+- quantities: Vector{<:AbstractQuantity}
+objects defining quantities/metrics to plot
 
 Returns
-    fig: Figure
-        the Makie figure
-    observables: Dict{Symbol,Observable}
-        mapping quantity key → observable line data, update of an observable results in plot update
-    axs :Dict{Symbol,Axis}
-        mapping quantity key → axis, adjust limits while plotting
-
+- fig: Figure
+the Makie figure
+- observables: Dict{Symbol,Observable}
+mapping quantity key → observable line data, update of an observable results in plot update
+- axs :Dict{Symbol,Axis}
+mapping quantity key → axis, adjust limits while plotting
 """
 function setup_plots(
     quantities::Vector{<:AbstractQuantity};
@@ -65,9 +58,7 @@ end
 
 """
     render_loop(channel, quantities)
-
 Consume training updates from `channel` and update WGLMakie plots in real time.
-
 Creates a figure using setup_plot and intialize observables data,
 
 Iterates over messages from channel, expected to be (step, dict) where dict contains quantity values for that step.
@@ -77,11 +68,10 @@ Appends (step, value) points to the corresponding series and updates Makie obser
 The loop terminates automatically when channel is closed and all messages have been passed.
 
 Args:
-    channel: Channel:
-        stream of training updates (produced by training loop)
-    quantities: Vector{<:AbstractQuantity}
-        quantities defining which series to plot
-
+channel: Channel:
+stream of training updates (produced by training loop)
+quantities: Vector{<:AbstractQuantity}
+quantities defining which series to plot
 """
 function render_loop(
     channel::Channel,

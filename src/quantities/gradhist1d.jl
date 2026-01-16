@@ -1,14 +1,10 @@
 """
-    historiogram (later in form of bar plot) of sample gradients per trainable parameter at the current iteration 
+   GradHist1dQuantity 
+historiogram (later in form of bar plot) of sample gradients per trainable parameter at the current iteration 
 """
-struct GradHist1d <: AbstractQuantity
-    key::Symbol
-    GradHist1d() = new(:gradhist1d)
-end
+struct GradHist1dQuantity <: AbstractQuantity end
 
-quantity_key(q::gradhist1d) = q.key
-
-function compute!(q::gradhist1d, losses, back, grads, params)
+function compute(q::GradHist1dQuantity, losses, back, grads, params)
     B = length(losses)
     seed = zeros(eltype(losses), B)
 

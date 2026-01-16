@@ -1,7 +1,3 @@
-using Flux
-using MLDatasets
-using LMD4MLTraining
-
 # Data Loader
 function get_data_loader()
     preprocess(x, y) = (reshape(x, 28, 28, 1, :), Flux.onehotbatch(y, 0:9))
@@ -9,7 +5,6 @@ function get_data_loader()
     x_train, y_train = preprocess(x_train_raw, y_train_raw)
     return Flux.DataLoader((x_train, y_train); batchsize=128, shuffle=true)
 end
-
 # Model
 function get_model()
     return Chain(
@@ -24,7 +19,6 @@ function get_model()
     )
 end
 
-
 function main()
     # Define quantities to track
     quantities = [LossQuantity(), GradNormQuantity(), DistanceQuantity(), UpdateSizeQuantity(), NormTestQuantity()]
@@ -35,7 +29,7 @@ function main()
     loss_fn(ŷ, y) = vec(Flux.logitcrossentropy(ŷ, y; agg=identity))
     learner = Learner(model, data_loader, loss_fn, optim, quantities)
 
-    Train!(learner, 1, false)
+    train_leaner!(learner, 1, false)
 
     println("Training finished.")
 end

@@ -1,50 +1,45 @@
-using Flux
-using Logging
-using Zygote
-using Statistics
-# """
-#     Learner 
-# Object bundling together all information for training with cockpit. Mutable struct so that model parameters and optimizer state 
-# can be updated in-place during training. 
-# Fields:
-#     model: M
-#         arquitecture which parameters should be optimized during training 
-#     data_loader: D
-#         iterable that makes data batches accessible for training
-#     loss_fn: Function
-#         calculate the loss of the model w.t.r to training objective (returns scalar loss value)
-#     optim: P
-#         optimizer chosen to update model parameters in the backward pass (e.g. Flux.Adam)
-#     quantities: Vector{<:AbstractQuantity}
-#         (optional) metrics computed every training step used for evakuation and diagnostic of model training
-# """
-mutable struct Learner{M, D, P}
+"""
+    Learner 
+Object bundling together all information for training with cockpit. Mutable struct so that model parameters and optimizer state 
+can be updated in-place during training. 
+Fields:
+- model: M
+arquitecture which parameters should be optimized during training 
+- data_loader: D
+iterable that makes data batches accessible for training
+- loss_fn: F <: Function
+calculate the loss of the model w.t.r to training objective (returns scalar loss value)
+- optim: P
+optimizer chosen to update model parameters in the backward pass (e.g. Flux.Adam)
+- quantities: Q <: Vector{<:AbstractQuantity}
+(optional) metrics computed every training step used for evakuation and diagnostic of model training
+"""
+mutable struct Learner{M, D, F<:Function, P, Q<:Vector{<:AbstractQuantity}}
     model:: M
     data_loader::D
-    loss_fn::Function
+    loss_fn::F
     optim::P
-    quantities::Vector{AbstractQuantity}
+    quantities::Q
 end
 Learner(model, data_loader, loss_fn::Function, optim) =
     Learner(model, data_loader, loss_fn, optim, AbstractQuantity[])
 
 """
-    Train!(learner, epochs, with_plots)
-
+    train!(learner, epochs, with_plots)
 train a Learner and render quantities (optinal). 
 when plotting desired: create channel to pass data from training loop to cockpit session:
-    - use put! to pass data into the channel (if full wait until space availiable, else add immediately),
-    - use take! to returm data from the channel (if channel is empty wait until data arrives, else retrieve inmediately). 
-    
+- use put! to pass data into the channel (if full wait until space availiable, else add immediately),
+- use take! to returm data from the channel (if channel is empty wait until data arrives, else retrieve inmediately). 
+
 Args:
-    learner: Learner
-        contains model and model training specifications (architecture, loss function, optimizer, quantities to track, etc.)
-    epochs: Int
-        number of training epochs
-    with_plots: Bool
-        user selection, if rendering is desired with_plots = True
+learner: Learner
+- contains model and model training specifications (architecture, loss function, optimizer, quantities to track, etc.)
+epochs: Int
+- number of training epochs
+with_plots: Bool
+- user selection, if rendering is desired with_plots = True
 """
-function Train!(
+function train_learner!(
     learner::Learner,
     epochs::Int,
     with_plots::Bool,
@@ -66,20 +61,18 @@ end
 
 """
     train_loop!(learner, epochs, channel)
-
 Run training for a Learner and send training quantities through a channel for visualization 
 Perform model optimization loop: iteration over epochs and batches, use loss and corresponding gradients w.r.t trainable 
 parameters to update the model in-place and compute optinal metrics (quantities).
 Use a global step counter for traning steps and a channel that automatically closes if task is finished or an error occurs
 
 Args: 
-    learner: Learner,
-        contains model and model training specifications (architecture, loss function, optimizer, quantities to track, etc.)
-    epochs: Int,
-        number of training epochs
-    channel: Channel{Tuple{Int,Dict{Symbol,Float32}}} or nothing
-        communication channel with capacity set to 100 to pass information between Flux backend and cockpit, needed for plotting
-
+- learner: Learner,
+contains model and model training specifications (architecture, loss function, optimizer, quantities to track, etc.)
+- epochs: Int,
+number of training epochs
+- channel: Channel{Tuple{Int,Dict{Symbol,Float32}}} or nothing
+communication channel with capacity set to 100 to pass information between Flux backend and cockpit, needed for plotting
 """
 function train_loop!(
     learner::Learner,

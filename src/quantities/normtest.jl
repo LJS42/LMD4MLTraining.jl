@@ -1,15 +1,10 @@
 """
-    struct NormTestQuantity
-        signal-to-noise ration for gradients
+   NormTestQuantity
+signal-to-noise ration for gradients
 """
-struct NormTestQuantity <: AbstractQuantity
-    key::Symbol
-    NormTestQuantity() = new(:normtest)
-end
+struct NormTestQuantity <: AbstractQuantity end
 
-quantity_key(q::NormTestQuantity) = q.key
-
-function compute!(q::NormTestQuantity, losses, back, grads, params)
+function compute(q::NormTestQuantity, losses, back, grads, params)
     B = length(losses)
     seed = zeros(eltype(losses), B)
     sample_norm = zeros(Float32, B)
