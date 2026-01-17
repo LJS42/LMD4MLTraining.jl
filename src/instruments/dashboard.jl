@@ -16,92 +16,100 @@ const CLASS_LOSS      = :loss
 const CLASS_STEPSIZE  = :stepsize
 const CLASS_GRADIENT  = :gradients
 
-objects = Dict(
-    :loss => (
-        class = CLASS_LOSS,
-        title = "Training Loss", xlabel = "Iterations", ylabel = "Loss",
-        axis_bg = AX_LOSS_BG
-    ),
-    :gradnorm => (
-        class = CLASS_STEPSIZE, n_axes = 1,
-        title = "Gradient Norm", xlabel = "Iteration", ylabel = "Grad Norm",
-        axis_bg = AX_BG
-    ),
-    :distance => (
-        class = CLASS_STEPSIZE, n_axes = 1,
-        title = "Parameter Distance", xlabel = "Iteration", ylabel = "Distance",
-        axis_bg = AX_BG
-    ),
-    :updatesize => (
-        class = CLASS_STEPSIZE, n_axes = 1,
-        title = "Update Size", xlabel = "Iteration", ylabel = "Update Size",
-        axis_bg = AX_BG
-    ),
-    :dist_updatesize => (
-        class = CLASS_STEPSIZE, n_axes = 2, overlay = true,
-        axis_bg = AX_BG
-    ),
-    :normtest => (
-        class = CLASS_GRADIENT, n_axes = 1,
-        title = "Gradient Test", xlabel = "Iteration", ylabel = "Norm Test",
-        axis_bg = AX_BG
-    ),
-    :gradhist1d => (
-        class = CLASS_GRADIENT, n_axes = 1,
-        title = "Gradient Element Histogram", xlabel = "Gradient Element Value", ylabel = "Frequency",
-        axis_bg = AX_BG
-    )
-)
+plot_class(::AbstractQuantity) = error("class must be defined")
+plot_title(::AbstractQuantity) = error("plot_title must be defined")
+xlabel(::AbstractQuantity)  = "Iteration"
+ylabel(::AbstractQuantity)  = error("ylabel must be defined")
+axis_bg(::AbstractQuantity) = AX_BG
+n_axes(::AbstractQuantity)  = 1
+overlay(::AbstractQuantity) = false
 
-class_of(o::Symbol) = objects[o].class
+plot_class(::LossQuantity) = CLASS_LOSS
+plot_title(::LossQuantity) = "Training loss"
+ylabel(::LossQuantity) = "Loss"
 
-function quantities_to_objects(qs::Vector{Symbol})
-    quants = Symbol[]
-    seen = Set{Symbol}()
+plot_class(::GradNormQuantity) = CLASS_STEPSIZE
+plot_title(::GradNormQuantity) = "Gradient norm"
+ylabel(::GradNormQuantity) = "Grad Norm"
+
+plot_class(::DistanceQuantity) = CLASS_STEPSIZE
+plot_title(::DistanceQuantity) = "Parameter distance"
+ylabel(::DistanceQuantity) = "Distance"
+
+plot_class(::UpdateSizeQuantity) = CLASS_STEPSIZE
+plot_title(::UpdateSizeQuantity) = "Parameter update size"
+ylabel(::UpdateSizeQuantity) = "Update Size"
+
+plot_class(::NormTestQuantity) = CLASS_GRADIENT
+plot_title(::NormTestQuantity) = "Gradient norm test"
+ylabel(::NormTestQuantity) = "Norm Test"
+
+plot_class(::GradHist1dQuantity) = CLASS_GRADIENT
+plot_title(::GradHist1dQuantity) = "Gradient element historiogram"
+xlabel(::GradHist1dQuantity) = "Gradient Element"
+ylabel(::GradHist1dQuantity) = "Frequency"
+
+struct CombinedQuantity <: AbstractQuantity end
+
+plot_class(::CombinedQuantity) = CLASS_STEPSIZE
+n_axes(::CombinedQuantity) = 2
+overlay(::CombinedQuantity) = true
+
+plot_title(::CombinedQuantity) = "Parameter distances"
+ylabel(::CombinedQuantity) = ylabel(DistanceQuantity())
+overlay_ylabel(::CombinedQuantity) = ylabel(UpdateSizeQuantity())
+
+
+function quantities_to_objects(qs::Vector{<:AbstractQuantity})
+    objs = AbstractQuantity[]
+    seen = Set{DataType}()
     for q in qs
-        q == :loss && continue
-        q in seen && continue
-        push!(quants, q)
-        push!(seen, q)
+        q isa LossQuantity && continue
+        T = typeof(q)
+        T in seen && continue
+        push!(objs, q)
+        push!(seen, T)
     end
-    if (:distance in seen) && (:updatesize in seen)
-        out = Symbol[]
+    has_dist = DistanceQuantity in seen
+    has_upd  = UpdateSizeQuantity in seen
+
+    if has_dist && has_upd
+        out = AbstractQuantity[]
         inserted = false
-        for q in quants
-            if q == :distance || q == :updatesize
+        for o in objs
+            if o isa DistanceQuantity || o isa UpdateSizeQuantity
                 if !inserted
-                    push!(out, :dist_updatesize)
+                    push!(out, CombinedQuantity)
                     inserted = true
                 end
                 continue
             end
-            push!(out, q)
+            push!(out, o)
         end
         return out
     else
-        return quants
+        return objs
     end
 end
 
 function objects_to_panels(objs::Vector{Symbol})
-    steps = [o for o in objs if class_of(o) == CLASS_STEPSIZE]
-    grads = [o for o in objs if class_of(o) == CLASS_GRADIENT]
+    steps = [o for o in objs if plot_class(o) == CLASS_STEPSIZE]
+    grads = [o for o in objs if plot_class(o) == CLASS_GRADIENT]
 
     step_priority(o) =
-        o == :gradnorm ? 2 :
-        (o == :distance || o == :updatesize || o == :dist_updatesize) ? 1 : 0
+        o isa GradNormQuantity ? 0 :
+        (o isa DistanceQuantity || o isa UpdateSizeQuantity || o isa DistUpdateSizePanel) ? 1 : 2
+
     grad_priority(o) =
-        o == :normtest ? 0 :
-        o == :gradhist1d ? 1 : 2
+        o isa NormTestQuantity ? 0 :
+        o isa GradHist1dQuantity ? 1 : 2
 
     steps = sort(steps; by=step_priority)
     grads = sort(grads; by=grad_priority)
 
-    panels = Vector{Tuple{Symbol, Vector{Symbol}}}()
+    panels = Vector{Tuple{Symbol, Vector{AbstractQuantity}}}()
 
-    if isempty(objs)
-        return panels
-    end
+    isempty(objs) && return panels
 
     has_steps = !isempty(steps)
     has_grads = !isempty(grads)
@@ -112,14 +120,11 @@ function objects_to_panels(objs::Vector{Symbol})
         return panels
     end
 
-    if has_steps
-        push!(panels, (CLASS_STEPSIZE, steps))
-    else
-        push!(panels, (CLASS_GRADIENT, grads))
-    end
-    return panels
+    push!(panels, has_steps ?  (CLASS_STEPSIZE, steps) : (CLASS_GRADIENT, grads))
+
 end
 
+#continue here 
 function setup_axis!(ax::Axis; overlay=false, bg=AX_BG)
     ax.backgroundcolor = bg
     if overlay
