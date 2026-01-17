@@ -27,6 +27,7 @@ overlay(::AbstractQuantity) = false
 plot_class(::LossQuantity) = CLASS_LOSS
 plot_title(::LossQuantity) = "Training loss"
 ylabel(::LossQuantity) = "Loss"
+axis_bg(::LossQuantity) = AX_LOSS_BG
 
 plot_class(::GradNormQuantity) = CLASS_STEPSIZE
 plot_title(::GradNormQuantity) = "Gradient norm"
@@ -59,6 +60,8 @@ plot_title(::CombinedQuantity) = "Parameter distances"
 ylabel(::CombinedQuantity) = ylabel(DistanceQuantity())
 overlay_ylabel(::CombinedQuantity) = ylabel(UpdateSizeQuantity())
 
+struct UpdateSizeOverlay end
+
 
 function quantities_to_objects(qs::Vector{<:AbstractQuantity})
     objs = AbstractQuantity[]
@@ -79,7 +82,7 @@ function quantities_to_objects(qs::Vector{<:AbstractQuantity})
         for o in objs
             if o isa DistanceQuantity || o isa UpdateSizeQuantity
                 if !inserted
-                    push!(out, CombinedQuantity)
+                    push!(out, CombinedQuantity())
                     inserted = true
                 end
                 continue
@@ -92,13 +95,15 @@ function quantities_to_objects(qs::Vector{<:AbstractQuantity})
     end
 end
 
-function objects_to_panels(objs::Vector{Symbol})
+function objects_to_panels(objs::Vector{<:AbstractQuantity})
     steps = [o for o in objs if plot_class(o) == CLASS_STEPSIZE]
     grads = [o for o in objs if plot_class(o) == CLASS_GRADIENT]
 
+    isempty(objs) && return panels
+
     step_priority(o) =
         o isa GradNormQuantity ? 0 :
-        (o isa DistanceQuantity || o isa UpdateSizeQuantity || o isa DistUpdateSizePanel) ? 1 : 2
+        (o isa DistanceQuantity || o isa UpdateSizeQuantity || o isa CombinedQuantity) ? 1 : 2
 
     grad_priority(o) =
         o isa NormTestQuantity ? 0 :
@@ -107,25 +112,20 @@ function objects_to_panels(objs::Vector{Symbol})
     steps = sort(steps; by=step_priority)
     grads = sort(grads; by=grad_priority)
 
-    panels = Vector{Tuple{Symbol, Vector{AbstractQuantity}}}()
+    panels = Vector{Tuple{Symbol, Vector{<:AbstractQuantity}}}()
 
-    isempty(objs) && return panels
-
-    has_steps = !isempty(steps)
-    has_grads = !isempty(grads)
-
-    if has_steps && has_grads
+    if !isempty(steps)
         push!(panels, (CLASS_STEPSIZE, steps))
+    end
+    if !isempty(grads)
         push!(panels, (CLASS_GRADIENT, grads))
-        return panels
     end
 
-    push!(panels, has_steps ?  (CLASS_STEPSIZE, steps) : (CLASS_GRADIENT, grads))
-
+    return panels
 end
 
-#continue here 
-function setup_axis!(ax::Axis; overlay=false, bg=AX_BG)
+
+function setup_axis!(ax; bg=AX_BG, overlay=false)
     ax.backgroundcolor = bg
     if overlay
         ax.yaxisposition = :right
@@ -139,7 +139,7 @@ function setup_axis!(ax::Axis; overlay=false, bg=AX_BG)
 end
 
 function create_group(cell, n_objs, title; overlay=false, two_cols=false)
-    cell[5, 3] = GridLayout()
+    #cell[5, 3] = GridLayout()
 
     Label(cell[1, 1:3], title;
         fontsize = 13,
@@ -156,7 +156,7 @@ function create_group(cell, n_objs, title; overlay=false, two_cols=false)
     colsize!(cell, 2, Relative(0.98))
     colsize!(cell, 3, Relative(0.01))
 
-    ax_overlay = nothing
+    ax0 = nothing
     ax2 = nothing
 
     if n_objs == 1
@@ -164,14 +164,8 @@ function create_group(cell, n_objs, title; overlay=false, two_cols=false)
         rowsize!(cell, 3, Relative(0.76))
         rowsize!(cell, 4, Relative(0.10))
 
-        ax1 = setup_axis!(Axis(cell[3, 2]))
-
-        if overlay
-            ax_overlay = setup_axis!(Axis(cell[3, 2]); overlay=true)
-            linkxaxes!(ax1, ax_overlay)
-        end
-
-        return ax1, ax2, ax_overlay
+        ax1_cell = cell[3, 2]
+        ax1 = setup_axis!(Axis(ax1_cell))
     end
 
     if two_cols
@@ -180,98 +174,77 @@ function create_group(cell, n_objs, title; overlay=false, two_cols=false)
         rowsize!(cell, 4, Relative(0.10))
 
         inner = cell[3, 2] = GridLayout()
-        inner[1, 2] = GridLayout()  
+        ax1_cell = inner[1,1]
+        #inner[1, 2] = GridLayout()  
 
         colgap!(inner, 10)
         rowsize!(inner, 1, Relative(1.0))
         colsize!(inner, 1, Relative(0.5))
         colsize!(inner, 2, Relative(0.5))
 
-        ax1 = setup_axis!(Axis(inner[1, 1]))
+        ax1 = setup_axis!(Axis(ax1_cell))
         ax2 = setup_axis!(Axis(inner[1, 2]))
-
-        if overlay
-            ax_overlay = setup_axis!(Axis(inner[1, 1]); overlay=true)
-            linkxaxes!(ax1, ax_overlay)
-        end
-
-        return ax1, ax2, ax_overlay
     else
         rowsize!(cell, 2, Relative(0.445))
         rowsize!(cell, 3, Relative(0.01))
         rowsize!(cell, 4, Relative(0.445))
 
-
-        ax1 = setup_axis!(Axis(cell[2, 2]))
+        ax1_cell = cell[2,2]
+        ax1 = setup_axis!(Axis(ax1_cell))
         ax2 = setup_axis!(Axis(cell[4, 2]))
+    end 
 
-        if overlay
-            ax_overlay = setup_axis!(Axis(cell[2, 2]); overlay=true)
-            linkxaxes!(ax1, ax_overlay)
-        end
-
-        return ax1, ax2, ax_overlay
+    if overlay
+        ax0 = setup_axis!(Axis(ax1_cell); overlay=true)
+        linkxaxes!(ax1, ax0)
     end
+
+    return ax1, ax2, ax0
 end
 
-function label_axis!(axesdict, ax, o::Symbol; ax_overlay=nothing)
-    if o == :dist_updatesize
-        ax.title  = objects[:distance].title
-        ax.xlabel = objects[:distance].xlabel
-        ax.ylabel = objects[:distance].ylabel
-        axesdict[:distance] = ax
+function label_axis!(axes, ax, obj, ax_overlay=nothing)
+    ax.title  = plot_title(obj)
+    ax.xlabel = xlabel(obj)
+    ax.ylabel = ylabel(obj)
+    axes[typeof(obj)] = ax
 
-        if ax_overlay !== nothing
-            ax_overlay.ylabel = objects[:updatesize].ylabel
-            axesdict[:overlay] = ax_overlay
-        end
-    else
-        ax.title  = objects[o].title
-        ax.xlabel = objects[o].xlabel
-        ax.ylabel = objects[o].ylabel
-        axesdict[o] = ax
+    if obj isa CombinedQuantity && ax_overlay !== nothing
+        ax_overlay.ylabel = overlay_ylabel(obj)
+        axes[UpdateSizeOverlay] = ax_overlay
     end
 end
 
 
-function build_dashboard(quantities::Vector{<:AbstractQuantity})
+function build_dashboard(qs::Vector{<:AbstractQuantity})
     set_theme!(Theme(
-        font = "DejaVu Sans",
         fontsize = 10,
         Axis = (
-            xgridvisible = true,
-            ygridvisible = true,
-            xgridcolor = GRID,
-            ygridcolor = GRID,
-            xticklabelsize = 9,
-            yticklabelsize = 9,
-            xlabelsize = 10,
-            ylabelsize = 10,
+            xgridvisible = true, ygridvisible = true,
+            xgridcolor = GRID, ygridcolor = GRID,
+            xticklabelsize = 9, yticklabelsize = 9,
+            xlabelsize = 10, ylabelsize = 10,
             titlesize = 12,
-            xtickcolor = TX_TICKS,
-            ytickcolor = TX_TICKS,
-            xticklabelcolor = TX_TICKS,
-            yticklabelcolor = TX_TICKS,
-            xlabelcolor = TX_MAIN,
-            ylabelcolor = TX_MAIN,
+            xtickcolor = TX_TICKS, ytickcolor = TX_TICKS,
+            xticklabelcolor = TX_TICKS, yticklabelcolor = TX_TICKS,
+            xlabelcolor = TX_MAIN, ylabelcolor = TX_MAIN,
             titlecolor  = TX_MAIN,
         )
     ))
-    qs   = Symbol[quantity_key(q) for q in quantities]
+    
     objs = quantities_to_objects(qs)
 
     f    = Figure(size = (1000, 700), backgroundcolor = FIG_BG)
-    axes = Dict{Symbol, Any}()
+    axes = Dict{DataType, Axis}()
 
     gd = f[1, 1:2] = GridLayout()
     Label(gd[1, 1:3, Top()], "Live Monitoring of ML Training", fontsize = 20, color = TX_MAIN)
 
     axL = Axis(gd[2, 2])
-    setup_axis!(axL; bg = AX_LOSS_BG)
-    axL.title  = objects[:loss].title
-    axL.xlabel = objects[:loss].xlabel
-    axL.ylabel = objects[:loss].ylabel
-    axes[:loss] = axL
+    setup_axis!(axL; bg = axis_bg(LossQuantity()))
+    axL.title  = plot_title(LossQuantity())
+    axL.xlabel = xlabel(LossQuantity())
+    axL.ylabel = ylabel(LossQuantity())
+    axes[LossQuantity] = axL
 
     rowgap!(f.layout, 3)
     colgap!(f.layout, 10)
@@ -280,9 +253,7 @@ function build_dashboard(quantities::Vector{<:AbstractQuantity})
     colsize!(gd, 1, Relative(0.15))
     colsize!(gd, 3, Relative(0.15))
 
-    if isempty(objs)
-        return f, axes
-    end
+    isempty(objs) && return f, axes
 
     panels = objects_to_panels(objs)
     gridlayouts = GridLayout[]
@@ -298,7 +269,6 @@ function build_dashboard(quantities::Vector{<:AbstractQuantity})
         colsize!(wrap, 1, Relative(0.02)); colsize!(wrap, 2, Relative(0.96)); colsize!(wrap, 3, Relative(0.02))
 
         Box(wrap[1:3, 1:3], color=panel_color, strokecolor=BORDER, strokewidth=0.5, z=-100)
-
         gp = wrap[2, 2] = GridLayout()
         push!(gridlayouts, gp)
     else
@@ -313,8 +283,8 @@ function build_dashboard(quantities::Vector{<:AbstractQuantity})
         wrap1 = f[2, 1] = GridLayout()
         wrap2 = f[2, 2] = GridLayout()
 
-        wrap1[3, 3] = GridLayout()
-        wrap2[3, 3] = GridLayout()
+        # wrap1[3, 3] = GridLayout()
+        # wrap2[3, 3] = GridLayout() 
 
         rowsize!(wrap1, 1, Relative(0.02)); rowsize!(wrap1, 2, Relative(0.96)); rowsize!(wrap1, 3, Relative(0.02))
         colsize!(wrap1, 1, Relative(0.02)); colsize!(wrap1, 2, Relative(0.96)); colsize!(wrap1, 3, Relative(0.02))
@@ -335,28 +305,27 @@ function build_dashboard(quantities::Vector{<:AbstractQuantity})
 
     rowsize!(f.layout, 2, Relative(0.7))
 
-    for (gp, (cls, objlist)) in zip(gridlayouts, panels)
+    for (gp, (cls, items)) in zip(gridlayouts, panels)
         title = cls == CLASS_STEPSIZE ? "STEP SIZE" : "GRADIENTS"
 
-        overlay = any(get(objects[o], :overlay, false) for o in objlist)
-        n_objs  = min(length(objlist), 2)  
+        overlay = any(overlay, objlist) 
+        n_objs  = min(length(items), 2)  
 
-        two_cols = (length(objs) == 2) && (length(objlist) == 2)
+        two_cols = (length(objs) == 2) && (length(items) == 2)
         ax1, ax2, ax_overlay = create_group(gp, n_objs, title; overlay=overlay, two_cols=two_cols)
 
         if n_objs == 1
-            label_axis!(axes, ax1, objlist[1]; ax_overlay=ax_overlay)
+            label_axis!(axes, ax1, items[1],ax_overlay)
         else
-            o1, o2 = objlist[1], objlist[2]
-            if o1 == :dist_updatesize
-                label_axis!(axes, ax1, o1; ax_overlay=ax_overlay)
-                label_axis!(axes, ax2, o2)
-            elseif o2 == :dist_updatesize
-                label_axis!(axes, ax2, o2; ax_overlay=ax_overlay)
-                label_axis!(axes, ax1, o1)
+            if items[1] isa CombinedQuantity
+                label_axis!(axes, ax1, items[1], ax_overlay)
+                label_axis!(axes, ax2, items[2])
+            elseif items[2] isa CombinedQuantity
+                label_axis!(axes, ax2, items[2], ax_overlay)
+                label_axis!(axes, ax1, items[1])
             else
-                label_axis!(axes, ax1, o1)
-                label_axis!(axes, ax2, o2)
+                label_axis!(axes, ax1, items[1])
+                label_axis!(axes, ax2, items[2])
             end
         end
 
@@ -373,20 +342,13 @@ struct UpdateSizeQuantity <: AbstractQuantity end
 struct NormTestQuantity   <: AbstractQuantity end
 struct GradHist1dQuantity <: AbstractQuantity end
 
-quantity_key(::LossQuantity)       = :loss
-quantity_key(::GradNormQuantity)   = :gradnorm
-quantity_key(::DistanceQuantity)   = :distance
-quantity_key(::UpdateSizeQuantity) = :updatesize
-quantity_key(::NormTestQuantity)   = :normtest
-quantity_key(::GradHist1dQuantity) = :gradhist1d
-
 f, axes = build_dashboard([
     LossQuantity(),
     GradNormQuantity(),
     DistanceQuantity(),
     UpdateSizeQuantity(),
     NormTestQuantity(),
-    GradHist1dQuantity()   
+    GradHist1dQuantity(),   
 ])
 
 f
