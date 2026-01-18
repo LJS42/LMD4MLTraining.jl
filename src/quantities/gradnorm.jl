@@ -1,14 +1,11 @@
 """
-   NormTestQuantity
+    GradNormQuantity
+Quantity tracking the norm of the model gradients.
 """
 struct GradNormQuantity <: AbstractQuantity end
 
-_norm_sq(x::AbstractArray{<:Number}) = sum(abs2, x)
-_norm_sq(x::Union{Tuple,NamedTuple}) = sum(_norm_sq, values(x))
-_norm_sq(x::Nothing) = 0.0
-_norm_sq(x) =
-    throw(ArgumentError("Unsupported grad leaf type: $(typeof(x))"))
+quantity_key(::GradNormQuantity) = :gradnorm
 
-function compute(q::GradNormQuantity, losses, back, grads, params)
-    return sqrt(_norm_sq(grads))
+function compute(::GradNormQuantity, losses, back, grads, params)
+    return Float32(sqrt(_norm_sq(grads)))
 end

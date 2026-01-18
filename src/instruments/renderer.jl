@@ -1,101 +1,124 @@
 """
-    setup_plots(quantities)  -> fig, observables, axs
-
-Create a WGLMakie figure with one axis per tracked quantity.
-
-For each quantity this function creates:
-- an  axis at row i, column 1 of the figure grid
-- an observable that holds the line data (step, value)
-- a line plot that updates automatically when the observable is updated
-
-The y-axis is displayed on a log10 scale to support values spanning orders
-of magnitude (e.g. losses).
-
-Args
-- quantities: Vector{<:AbstractQuantity}
-objects defining quantities/metrics to plot
-
-Returns
-- fig: Figure
-the Makie figure
-- observables: Dict{Symbol,Observable}
-mapping quantity key → observable line data, update of an observable results in plot update
-- axs :Dict{Symbol,Axis}
-mapping quantity key → axis, adjust limits while plotting
+    run_dashboard(channel, ready_channel, quantities)
+Initialize and run the dashboard on the current process.
 """
-function setup_plots(
-    quantities::Vector{<:AbstractQuantity};
-    display::Bool = true,
-)
-    set_theme!(theme_black())
-
-    fig = Figure(size=(1000, 600), fontsize=18)
-    axs = Dict{Symbol,Axis}() 
-    observables = Dict{Symbol,Observable}() 
-
-    for (i, q) in enumerate(quantities)
-        key = quantity_key(q)
-        ax = Axis(
-            fig[i, 1],
-            title = string(key),
-            xlabel = "Step",
-            ylabel = "Value",
-            yscale = log10,
-        )
-        axs[key] = ax
-        obs = Observable(Point2f[])
-        lines!(ax, obs, color = :cyan)
-        observables[key] = obs
+function _run_dashboard(channel::Union{Channel, RemoteChannel}, ready_channel::RemoteChannel, quantities::Vector{<:AbstractQuantity})
+    fig, axes_dict = build_dashboard(quantities)
+    observables = _initialize_plots(axes_dict)
+    
+    if !haskey(ENV, "CI")
+        WGLMakie.activate!(resize_to=:body)
+        
+        # Start a server explicitly
+        server = Bonito.Server("0.0.0.0", 9284)
+        
+        app = App() do session
+            return DOM.div(
+                fig,
+                DOM.style("body { margin: 0 !important; padding: 0 !important; overflow: hidden !important; }"),
+                style="width: 100%; height: 100%;"
+            )
+        end
+        
+        # Route the app to the root
+        Bonito.route!(server, "/" => app)
+        
+        url = "http://127.0.0.1:9284"
+        
+        # Force an initial update to trigger rendering and resizing
+        for obs in values(observables)
+            notify(obs)
+        end
+        notify(fig.scene.events.window_area)
+        
+        # Signal that we are ready and provide the URL
+        put!(ready_channel, url)
+        yield()
+    else
+        # In CI, just signal ready with a dummy URL
+        put!(ready_channel, "http://localhost:CI")
     end
 
-    if display && !haskey(ENV, "CI")
-        WGLMakie.activate!()
-        Bonito.browser_display()
-        display(fig)
-    end
-    return fig, observables, axs 
+    _render_loop(channel, fig, axes_dict, quantities, observables)
 end
 
 """
-    render_loop(channel, quantities)
-Consume training updates from `channel` and update WGLMakie plots in real time.
-Creates a figure using setup_plot and intialize observables data,
-
-Iterates over messages from channel, expected to be (step, dict) where dict contains quantity values for that step.
-Appends (step, value) points to the corresponding series and updates Makie observables to trigger plot redraws 
-(use autolimits! to keep axes scaled to the data).
-
-The loop terminates automatically when channel is closed and all messages have been passed.
-
-Args:
-channel: Channel:
-stream of training updates (produced by training loop)
-quantities: Vector{<:AbstractQuantity}
-quantities defining which series to plot
+    initialize_plots(axes_dict) -> observables
+Initialize line plots on the provided axes and return a dictionary of observables.
 """
-function render_loop(
-    channel::Channel,
-    quantities::Vector{<:AbstractQuantity};
-    display::Bool = true,
-)
-    fig, observables, axs = setup_plots(quantities; display = display)
+function _initialize_plots(axes_dict::Dict{DataType, Axis})
+    observables = Dict{DataType,Observable}()
+    for (q_type, ax) in axes_dict
+        obs = Observable(Point2f[])
+        if q_type == CombinedQuantity
+            lines!(ax, obs, color = RGBf(0.54, 0.71, 0.98)) # Blue
+        elseif q_type == UpdateSizeOverlay
+            lines!(ax, obs, color = RGBf(0.96, 0.76, 0.91)) # Pink
+        elseif q_type == LossQuantity
+            lines!(ax, obs, color = RGBf(0.54, 0.71, 0.98)) # Blue
+        elseif q_type == DistanceQuantity
+            lines!(ax, obs, color = RGBf(0.98, 0.70, 0.53)) # Peach
+        elseif q_type == GradNormQuantity
+            lines!(ax, obs, color = RGBf(0.65, 0.89, 0.63)) # Green
+        else
+            lines!(ax, obs, color = RGBf(0.54, 0.71, 0.98)) # Blue default
+        end
+        observables[q_type] = obs
+    end
+    return observables
+end
 
-    quantity_data = Dict{Symbol,Vector{Point2f}}(
-        key => copy(obs[]) for (key, obs) in observables
+"""
+    render_loop(channel, fig, axes_dict, quantities, observables)
+Consume training updates from `channel` and update the dashboard in real time.
+"""
+function _render_loop(
+    channel::Union{Channel, RemoteChannel},
+    fig::Figure,
+    axes_dict::Dict{DataType, Axis},
+    quantities::Vector{<:AbstractQuantity},
+    observables::Dict{DataType, Observable}
+)
+    quantity_data = Dict{DataType,Vector{Point2f}}(
+        q_type => copy(obs[]) for (q_type, obs) in observables
     )
 
-    for (step, received_quantities) in channel #iterates over channel messages
-    #blocks when channel is empty, ends automatically when channel is empty
-        for (key, value) in received_quantities
-            haskey(quantity_data, key) || continue
-            push!(quantity_data[key], Point2f(step, value))
+    for (step, received_quantities) in channel
+        # Handle shutdown signal
+        if step == -1
+            break
         end
 
-        for (key, obs) in observables
-            obs[] = quantity_data[key] #updated observables vectors 
+        for q in quantities
+            q_key = quantity_key(q)
+            haskey(received_quantities, q_key) || continue
+            val = received_quantities[q_key]
+            
+            q_type = typeof(q)
+            if q_type == DistanceQuantity && haskey(observables, CombinedQuantity)
+                push!(quantity_data[CombinedQuantity], Point2f(step, val))
+            elseif q_type == UpdateSizeQuantity && haskey(observables, UpdateSizeOverlay)
+                push!(quantity_data[UpdateSizeOverlay], Point2f(step, val))
+            elseif haskey(observables, q_type)
+                push!(quantity_data[q_type], Point2f(step, val))
+            end
         end
-        for ax in values(axs)
-            autolimits!(ax)
+
+        for (q_type, obs) in observables
+            obs[] = quantity_data[q_type]
+            if haskey(axes_dict, q_type)
+                autolimits!(axes_dict[q_type])
+            end
+        end
+        yield()
+    end
+
+    # Final update
+    for (q_type, obs) in observables
+        obs[] = quantity_data[q_type]
+        if haskey(axes_dict, q_type)
+            autolimits!(axes_dict[q_type])
         end
     end
+    yield()
 end

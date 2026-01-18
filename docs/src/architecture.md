@@ -17,9 +17,9 @@ The package is organized into the following components:
 
 ## Module structure
 
-- `cockpit/`: core abstractions (session, quantities, instruments)
-- `visualization/`: dashboard and plotting code
-- `backends/`: training loop integrations
+- `quantities/`: defines the `AbstractQuantity` interface and specific metrics (loss, gradients, etc.)
+- `instruments/`: contains the `renderer` and `dashboard` for live visualization.
+- `learner.jl`: provides the `Learner` abstraction and the training loop integrations.
 
 This modular design allows new quantities and visual instruments to be added
-without modifying the training loop logic.
+without modifying the core training logic.

@@ -1,12 +1,13 @@
 """
-    UpdateSizeQuantity:
-local, per step version of DistanceQuantity
-how aggresively is the optimizer moving at the current step
+    UpdateSizeQuantity
+Quantity tracking the L2 distance of parameters before and after the current update step.
 """
 struct UpdateSizeQuantity <: AbstractQuantity end
 
-function compute(q::UpdateSizeQuantity, losses, back, grads, params)
+quantity_key(::UpdateSizeQuantity) = :updatesize
+
+function compute(::UpdateSizeQuantity, losses, back, grads, params)
     params_diff = (a .- b for (a,b) in zip(params.pa, params.pb)) |> Tuple
-    return sqrt(_norm_sq(params_diff))
+    return Float32(sqrt(_norm_sq(params_diff)))
 end
 

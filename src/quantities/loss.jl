@@ -1,10 +1,11 @@
 """
     LossQuantity
+Quantity tracking the training loss.
 """
-    struct LossQuantity <: AbstractQuantity end
+struct LossQuantity <: AbstractQuantity end
 
-quantity_key(q::LossQuantity) = q.key
+quantity_key(::LossQuantity) = :loss
 
-function compute(q::LossQuantity, losses, back, grads, params)
-    return mean(losses)
+function compute(::LossQuantity, losses, back, grads, params)
+    return Float32(Statistics.mean(losses))
 end

@@ -54,6 +54,4 @@ julia> using LMD4MLTraining
 ```julia
 julia> include("examples/mnist.jl")
 ```
-You should now be able to see a window with two live plots:
-- Training loss versus training step 
-- Gradient norm versus training step
+You should now be able to see a browser window with a live dashboard showing various plots including training loss, gradient norms, and parameter updates.

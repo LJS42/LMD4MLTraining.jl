@@ -1,83 +1,123 @@
 """
-    Learner 
-Object bundling together all information for training with cockpit. Mutable struct so that model parameters and optimizer state 
-can be updated in-place during training. 
-Fields:
-- model: M
-arquitecture which parameters should be optimized during training 
-- data_loader: D
-iterable that makes data batches accessible for training
-- loss_fn: F <: Function
-calculate the loss of the model w.t.r to training objective (returns scalar loss value)
-- optim: P
-optimizer chosen to update model parameters in the backward pass (e.g. Flux.Adam)
-- quantities: Q <: Vector{<:AbstractQuantity}
-(optional) metrics computed every training step used for evakuation and diagnostic of model training
+    Learner{M, D, F, P, Q}
+Object bundling together all information for training.
+- `model`: Architecture optimized during training.
+- `data_loader`: Iterable for training data.
+- `loss_fn`: Function calculating the loss.
+- `optim`: Optimizer state.
+- `quantities`: Metrics computed every training step.
 """
-mutable struct Learner{M, D, F<:Function, P, Q<:Vector{<:AbstractQuantity}}
-    model:: M
+struct Learner{M, D, F<:Function, P, Q<:Vector{<:AbstractQuantity}}
+    model::M
     data_loader::D
     loss_fn::F
     optim::P
     quantities::Q
 end
-Learner(model, data_loader, loss_fn::Function, optim) =
-    Learner(model, data_loader, loss_fn, optim, AbstractQuantity[])
+
+"""
+    Learner(model, data_loader, loss_fn, optim)
+Convenience constructor for `Learner` without quantities.
+"""
+function Learner(model, data_loader, loss_fn::Function, optim)
+    return Learner(model, data_loader, loss_fn, optim, AbstractQuantity[])
+end
 
 """
     train!(learner, epochs, with_plots)
-train a Learner and render quantities (optinal). 
-when plotting desired: create channel to pass data from training loop to cockpit session:
-- use put! to pass data into the channel (if full wait until space availiable, else add immediately),
-- use take! to returm data from the channel (if channel is empty wait until data arrives, else retrieve inmediately). 
-
-Args:
-learner: Learner
-- contains model and model training specifications (architecture, loss function, optimizer, quantities to track, etc.)
-epochs: Int
-- number of training epochs
-with_plots: Bool
-- user selection, if rendering is desired with_plots = True
+Train a `Learner` for a number of epochs, optionally with live plotting.
 """
-function train_learner!(
+function train!(
     learner::Learner,
     epochs::Int,
     with_plots::Bool,
-    )
+)
     if with_plots
-        ch = Channel{Tuple{Int,Dict{Symbol,Float32}}}(100)
+        # Multi-process setup: Dashboard happens on worker, Training on main
+        if length(workers()) == 1 && workers()[1] == 1
+            addprocs(1)
+        end
+        worker_id = workers()[end]
 
-        train_task = @async train_loop!(learner, epochs, ch)
-        render_task = @async render_loop(ch, learner.quantities)
+        # Ensure all workers have the package and dependencies loaded
+        # We use @eval to avoid top-level macro issues in a function
+        @info "Loading LMD4MLTraining on worker $worker_id..."
+        Distributed.remotecall_eval(Main, [worker_id], quote
+            using LMD4MLTraining
+            using Flux
+            using WGLMakie
+            using Bonito
+        end)
 
-        wait(train_task)
-        wait(render_task)
+        # Remote Channel for cross-process communication
+        ch = RemoteChannel(() -> Channel{Tuple{Int,Dict{Symbol,Float32}}}(0))
+        # Signal channel to ensure dashboard is ready and get its URL
+        ready_ch = RemoteChannel(() -> Channel{String}(1))
+
+        # Start Dashboard on worker process. 
+        # We ONLY send the quantities to avoid serializing the whole learner (model, data, etc.)
+        qs = learner.quantities
+        render_task = @spawnat worker_id begin
+            try
+                _run_dashboard(ch, ready_ch, qs)
+            catch e
+                @error "Dashboard Error on worker" exception=(e, catch_backtrace())
+                put!(ready_ch, "ERROR")
+            end
+        end
+
+        # Wait for dashboard to signal it's ready and get the URL
+        @info "Waiting for dashboard to be ready..."
+        url = take!(ready_ch)
+        
+        if url == "ERROR"
+            @error "Dashboard failed to start on worker"
+            return
+        end
+        
+        @info "Dashboard ready at $url, starting training..."
+        
+        # Open the browser from the main process
+        if !haskey(ENV, "CI")
+            try
+                if Sys.isapple()
+                    run(`open $url`)
+                elseif Sys.islinux()
+                    run(`xdg-open $url`)
+                elseif Sys.iswindows()
+                    run(`start $url`)
+                end
+            catch e
+                @warn "Failed to open browser automatically" exception=e
+            end
+        end
+
+        try
+            # Run training on main process
+            train_loop!(learner, epochs, ch)
+        catch e
+            if e isa InterruptException
+                @info "Training interrupted by user"
+            else
+                rethrow(e)
+            end
+        finally
+            put!(ch, (-1, Dict{Symbol,Float32}())) # Signal end
+            fetch(render_task)
+        end
     else 
-        train_task = @async train_loop!(learner, epochs, nothing)
-        wait(train_task)
+        train_loop!(learner, epochs, nothing)
     end
-    
 end
 
 """
     train_loop!(learner, epochs, channel)
-Run training for a Learner and send training quantities through a channel for visualization 
-Perform model optimization loop: iteration over epochs and batches, use loss and corresponding gradients w.r.t trainable 
-parameters to update the model in-place and compute optinal metrics (quantities).
-Use a global step counter for traning steps and a channel that automatically closes if task is finished or an error occurs
-
-Args: 
-- learner: Learner,
-contains model and model training specifications (architecture, loss function, optimizer, quantities to track, etc.)
-- epochs: Int,
-number of training epochs
-- channel: Channel{Tuple{Int,Dict{Symbol,Float32}}} or nothing
-communication channel with capacity set to 100 to pass information between Flux backend and cockpit, needed for plotting
+Internal training loop that computes quantities and sends them to the display channel.
 """
 function train_loop!(
     learner::Learner,
     epochs::Int,
-    channel::Union{Channel{Tuple{Int,Dict{Symbol,Float32}}}, Nothing}
+    channel::Union{Channel{Tuple{Int,Dict{Symbol,Float32}}}, RemoteChannel, Nothing}
 )
     step_count = 0
     params0 = [copy(p) for p in Flux.trainables(learner.model)]
@@ -102,27 +142,27 @@ function train_loop!(
                 params = (p0=params0, pb=params_before, pa=params_after)
 
                 if channel === nothing && step_count < 4
-                    loss = compute!(LossQuantity(), losses, back, grads, params)
+                    l_val = compute(LossQuantity(), losses, back, grads, params)
                     println("STEP ", step_count)
-                    println("Loss: ",loss)
-                    gradnorm = compute!(GradNormQuantity(), losses, back, grads, params)
-                    println("Gradient norm: ",gradnorm)
-                    distance = compute!(DistanceQuantity(), losses, back, grads, params)
-                    println("Distance: ",distance)
-                    updatesize = compute!(UpdateSizeQuantity(), losses, back, grads, params)
-                    println("Update size: ",updatesize)
-                    normtest = compute!(NormTestQuantity(), losses, back, grads, params)
-                    println("Norm test: ",normtest)
+                    println("Loss: ", l_val)
+                    gn_val = compute(GradNormQuantity(), losses, back, grads, params)
+                    println("Gradient norm: ", gn_val)
+                    dist_val = compute(DistanceQuantity(), losses, back, grads, params)
+                    println("Distance: ", dist_val)
+                    upd_val = compute(UpdateSizeQuantity(), losses, back, grads, params)
+                    println("Update size: ", upd_val)
+                    nt_val = compute(NormTestQuantity(), losses, back, grads, params)
+                    println("Norm test: ", nt_val)
                 end
                 
                 if channel !== nothing
                     computed_quantities = Dict{Symbol,Float32}()
                     for q in learner.quantities
-                        value = compute!(q, losses, back, grads, params)
+                        value = compute(q, losses, back, grads, params)
                         computed_quantities[quantity_key(q)] = value
                     end
                     put!(channel, (step_count, computed_quantities))
-                    sleep(0.001) # To make concurrency possible
+                    yield()
                 end
             end
             @info "Epoch $epoch complete"
@@ -130,10 +170,8 @@ function train_loop!(
     catch e
         @error "Training Error" exception = (e, catch_backtrace())
     finally
-        if channel !== nothing
+        if channel !== nothing && !(channel isa RemoteChannel)
             close(channel)
         end
     end
- 
 end
-

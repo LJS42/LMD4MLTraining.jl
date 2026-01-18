@@ -1,28 +1,17 @@
-using GLMakie
-
-#Testing 
-abstract type AbstractQuantity end
-struct LossQuantity       <: AbstractQuantity end
-struct GradNormQuantity   <: AbstractQuantity end
-struct DistanceQuantity   <: AbstractQuantity end
-struct UpdateSizeQuantity <: AbstractQuantity end
-struct NormTestQuantity   <: AbstractQuantity end
-struct GradHist1dQuantity <: AbstractQuantity end
-
 struct CombinedQuantity <: AbstractQuantity end
 struct UpdateSizeOverlay end
 
-const FIG_BG     = RGBf(0.07, 0.08, 0.10)
-const AX_LOSS_BG = RGBf(0.6, 0.6, 0.6)
-const AX_BG      = RGBf(0.8, 0.8, 0.8)
+const FIG_BG     = RGBf(0.07, 0.07, 0.11) # Mocha Crust
+const AX_LOSS_BG = RGBf(0.12, 0.12, 0.18) # Mocha Base
+const AX_BG      = RGBf(0.12, 0.12, 0.18) # Mocha Base
 
-const PN_STEP    = RGBf(0.10, 0.16, 0.24)
-const PN_GRADS   = RGBf(0.18, 0.28, 0.38)
+const PN_STEP    = RGBf(0.09, 0.09, 0.15) # Mocha Mantle
+const PN_GRADS   = RGBf(0.09, 0.09, 0.15) # Mocha Mantle
 
-const BORDER     = RGBAf(1, 1, 1, 0.20)
-const GRID       = RGBAf(0, 0, 0, 0.10)
-const TX_MAIN    = RGBf(0.95, 0.96, 0.97)
-const TX_TICKS   = RGBf(0.82, 0.84, 0.87)
+const BORDER     = RGBAf(0.35, 0.37, 0.49, 0.5) # Mocha Surface1
+const GRID       = RGBAf(0.19, 0.20, 0.27, 0.4) # Mocha Surface0
+const TX_MAIN    = RGBf(0.80, 0.84, 0.96) # Mocha Text
+const TX_TICKS   = RGBf(0.65, 0.68, 0.78) # Mocha Subtext1
 
 const CLASS_LOSS      = :loss
 const CLASS_STEPSIZE  = :stepsize
@@ -70,7 +59,7 @@ plot_title(::CombinedQuantity) = "Parameter distances"
 ylabel(::CombinedQuantity) = ylabel(DistanceQuantity())
 overlay_ylabel(::CombinedQuantity) = ylabel(UpdateSizeQuantity())
 
-function quantities_to_objects(qs::Vector{<:AbstractQuantity})
+function _quantities_to_objects(qs::Vector{<:AbstractQuantity})
     objs = AbstractQuantity[]
     seen = Set{DataType}()
     for q in qs
@@ -102,11 +91,11 @@ function quantities_to_objects(qs::Vector{<:AbstractQuantity})
     end
 end
 
-function objects_to_panels(objs::Vector{<:AbstractQuantity})
+function _objects_to_panels(objs::Vector{<:AbstractQuantity})
     steps = [o for o in objs if plot_class(o) == CLASS_STEPSIZE]
     grads = [o for o in objs if plot_class(o) == CLASS_GRADIENT]
 
-    isempty(objs) && return panels
+    isempty(objs) && return Tuple{Symbol, Vector{<:AbstractQuantity}}[]
 
     step_priority(o) =
         (o isa DistanceQuantity || o isa UpdateSizeQuantity || o isa CombinedQuantity) ? 0 :
@@ -127,12 +116,12 @@ function objects_to_panels(objs::Vector{<:AbstractQuantity})
     return panels
 end
 
-function setup_axis!(ax; bg=AX_BG, overlay=false)
+function _setup_axis!(ax; bg=AX_BG, overlay=false)
     ax.backgroundcolor = bg
     if overlay
         ax.yaxisposition = :right
         ax.backgroundcolor = RGBAf(0, 0, 0, 0)
-        hidespines!(ax)
+        hidespines!(ax, :l, :t, :b)
         hidexdecorations!(ax, grid=false)
         ax.xgridvisible = false
         ax.ygridvisible = false
@@ -140,7 +129,7 @@ function setup_axis!(ax; bg=AX_BG, overlay=false)
     return ax
 end
 
-function create_group!(cell, n_objs, title; overlay=false, two_cols=false)
+function _create_group!(cell, n_objs, title; overlay=false, two_cols=false)
     cell[5, 3] = GridLayout()
 
     Label(cell[1, 1:3], title;
@@ -162,13 +151,13 @@ function create_group!(cell, n_objs, title; overlay=false, two_cols=false)
     ax_overlay = nothing
 
     if n_objs == 1
-        ax1 = setup_axis!(Axis(cell[3, 2]))
+        ax1 = _setup_axis!(Axis(cell[3, 2]))
         rowsize!(cell, 2, Relative(0.12))
         rowsize!(cell, 3, Relative(0.76))
         rowsize!(cell, 4, Relative(0.10))
 
         if overlay
-            ax_overlay = setup_axis!(Axis(cell[3, 2]); overlay=true)
+            ax_overlay = _setup_axis!(Axis(cell[3, 2]); overlay=true)
             linkxaxes!(ax1, ax_overlay)
         end
         return ax1, ax2, ax_overlay
@@ -176,8 +165,8 @@ function create_group!(cell, n_objs, title; overlay=false, two_cols=false)
 
     if two_cols
         inner = cell[3, 2] = GridLayout()
-        ax1 = setup_axis!(Axis(inner[1, 1]))
-        ax2 = setup_axis!(Axis(inner[1, 2]))
+        ax1 = _setup_axis!(Axis(inner[1, 1]))
+        ax2 = _setup_axis!(Axis(inner[1, 2]))
 
         rowsize!(cell, 2, Relative(0.12))
         rowsize!(cell, 3, Relative(0.76))
@@ -190,28 +179,28 @@ function create_group!(cell, n_objs, title; overlay=false, two_cols=false)
 
         ax_overlay = nothing
         if overlay
-            ax_overlay = setup_axis!(Axis(inner[1, 1]); overlay=true)
+            ax_overlay = _setup_axis!(Axis(inner[1, 1]); overlay=true)
             linkxaxes!(ax1, ax_overlay)
         end
         return ax1, ax2, ax_overlay
 
     else
-        ax1 = setup_axis!(Axis(cell[2, 2]))
-        ax2 = setup_axis!(Axis(cell[4, 2]))
+        ax1 = _setup_axis!(Axis(cell[2, 2]))
+        ax2 = _setup_axis!(Axis(cell[4, 2]))
 
         rowsize!(cell, 2, Relative(0.445))
         rowsize!(cell, 3, Relative(0.01))
         rowsize!(cell, 4, Relative(0.445))
 
         if overlay
-            ax_overlay = setup_axis!(Axis(cell[2, 2]); overlay=true)
+            ax_overlay = _setup_axis!(Axis(cell[2, 2]); overlay=true)
             linkxaxes!(ax1, ax_overlay)
         end
         return ax1, ax2, ax_overlay
     end
 end
 
-function label_axis!(axes, ax, obj, ax_overlay=nothing)
+function _label_axis!(axes, ax, obj, ax_overlay=nothing)
     ax.title  = plot_title(obj)
     ax.xlabel = xlabel(obj)
     ax.ylabel = ylabel(obj)
@@ -223,6 +212,10 @@ function label_axis!(axes, ax, obj, ax_overlay=nothing)
     end
 end
 
+"""
+    build_dashboard(quantities) -> (fig, axes_dict)
+Construct the dashboard layout for the given quantities and return the figure and axis mapping.
+"""
 function build_dashboard(qs::Vector{<:AbstractQuantity})
     set_theme!(Theme(
         fontsize = 10,
@@ -239,17 +232,17 @@ function build_dashboard(qs::Vector{<:AbstractQuantity})
         )
     ))
     
-    objs = quantities_to_objects(qs)
+    objs = _quantities_to_objects(qs)
 
-    fig_size = isempty(objs) ? (1000, 350) : (1000, 700)
-    f = Figure(size = fig_size, backgroundcolor = FIG_BG)
+    # Use reasonable size that will be scaled by CSS
+    f = Figure(backgroundcolor = FIG_BG, size = (1200, 900))
     axes = Dict{DataType, Axis}()
 
     gd = f[1, 1:2] = GridLayout()
     Label(gd[1, 1:3, Top()], "Live Monitoring of ML Training", fontsize = 20, color = TX_MAIN)
 
     axL = Axis(gd[2, 2])
-    setup_axis!(axL; bg = axis_bg(LossQuantity()))
+    _setup_axis!(axL; bg = axis_bg(LossQuantity()))
     axL.title  = plot_title(LossQuantity())
     axL.xlabel = xlabel(LossQuantity())
     axL.ylabel = ylabel(LossQuantity())
@@ -264,8 +257,11 @@ function build_dashboard(qs::Vector{<:AbstractQuantity})
 
     isempty(objs) && return f, axes
 
-    panels = objects_to_panels(objs)
+    panels = _objects_to_panels(objs)
     gridlayouts = GridLayout[]
+
+    # Collect all axes that share the same X-axis ("Iteration") to link them
+    iteration_axes = Axis[axL]
 
     if length(panels) == 1
         (cls, _) = panels[1]
@@ -321,27 +317,30 @@ function build_dashboard(qs::Vector{<:AbstractQuantity})
         n_objs  = min(length(items), 2)  
 
         two_cols = (panel_count == 1) && (n_objs == 2)
-        ax1, ax2, ax_overlay = create_group!(gp, n_objs, title; overlay=needs_overlay, two_cols=two_cols)
+        ax1, ax2, ax_overlay = _create_group!(gp, n_objs, title; overlay=needs_overlay, two_cols=two_cols)
 
         if n_objs == 1
-            label_axis!(axes, ax1, items[1], ax_overlay)
+            _label_axis!(axes, ax1, items[1], ax_overlay)
+            if xlabel(items[1]) == "Iteration"
+                push!(iteration_axes, ax1)
+            end
         else
-            label_axis!(axes, ax1, items[1], (items[1] isa CombinedQuantity) ? ax_overlay : nothing)
-            label_axis!(axes, ax2, items[2])
+            _label_axis!(axes, ax1, items[1], (items[1] isa CombinedQuantity) ? ax_overlay : nothing)
+            if xlabel(items[1]) == "Iteration"
+                push!(iteration_axes, ax1)
+            end
+            _label_axis!(axes, ax2, items[2])
+            if xlabel(items[2]) == "Iteration"
+                push!(iteration_axes, ax2)
+            end
         end
     end
+
+    if length(iteration_axes) > 1
+        linkxaxes!(iteration_axes...)
+    end
+
     return f, axes
 end
 
 build_dashboard(qs::AbstractVector) = build_dashboard(AbstractQuantity[qs...])
-
-f, axes = build_dashboard([
-    LossQuantity(),
-    GradNormQuantity(),
-    DistanceQuantity(),
-    UpdateSizeQuantity(),
-    NormTestQuantity(),
-    GradHist1dQuantity(),   
-])
-
-f

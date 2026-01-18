@@ -11,17 +11,87 @@ The package is inspired by the Python package cockpit and aims to provide insigh
 ## Motivation
 When training neural networks, issues such as unstable optimization, exploding gradients, or stalled learning are often only detected after training has finished. This package addresses this problem by providing live, interactive visualizations of important training metrics.
 
-## Fartures 
+## Installation
+
+To install the package, run the following in the Julia REPL:
+
+```julia
+using Pkg
+Pkg.add(url="https://github.com/LJS42/LMD4MLTraining.jl")
+```
+
+## Features
 Currently implemented features and features still in development include:
 
 - Integration with standard Flux/Zygote training loops
-- Live visualization using Makie.jl
-- Monitoring of loss user defined quantities: gradient norm, distance, update size, norm test and gradient history.
+- Live visualization using WGLMakie.jl
+- Monitoring of user defined quantities: loss, gradient norm, distance, update size, norm test and gradient history.
 - Modular design for adding additional quantities and visual instruments
 
-## Usage
+## Getting Started
 
+### Core Concepts
+
+The central object in `LMD4MLTraining` is the `Learner`. It bundles everything needed for training and monitoring:
+
+- **Model**: The Flux model to be trained.
+- **Data Loader**: An iterable (like `Flux.DataLoader`) providing training batches.
+- **Loss Function**: A function `f(ŷ, y)` that returns a vector of losses for the batch.
+- **Optimizer**: The optimizer state (from `Flux.setup`).
+- **Quantities**: A list of metrics to monitor during training.
+
+### Training
+
+To start training with live monitoring, use the `train!` function:
+
+```julia
+train!(learner, epochs, with_plots)
 ```
-julia --project=. -e 'import Pkg; Pkg.instantiate()'
-julia --project=. ./examples/mnist.jl
+
+- `learner`: Your `Learner` instance.
+- `epochs`: Number of training epochs.
+- `with_plots`: Boolean. If `true`, starts a WGLMakie dashboard in your browser (or VS Code plot pane).
+
+### Available Quantities
+
+The package provides several diagnostic quantities inspired by the "Cockpit" paper:
+
+| Quantity | Description |
+| :--- | :--- |
+| `LossQuantity()` | Tracks the training loss over time. |
+| `GradNormQuantity()` | Monitors the L2 norm of the gradients. |
+| `DistanceQuantity()` | Measures the L2 distance from the initialization. |
+| `UpdateSizeQuantity()` | Tracks the L2 norm of the parameter updates. |
+| `NormTestQuantity()` | Computes the "norm test" (checks if the gradient is dominated by noise). |
+| `GradHist1dQuantity()` | Visualizes the 1D distribution of gradient elements. |
+
+## Quick Start
+
+You can run the provided MNIST example to see the dashboard in action without even cloning the repository. Copy and paste the following command into your terminal:
+
+```bash
+julia -e 'using Pkg; Pkg.activate(temp=true); Pkg.add([Pkg.PackageSpec(url="https://github.com/LJS42/LMD4MLTraining.jl"), "Flux", "MLDatasets"]); include(download("https://raw.githubusercontent.com/LJS42/LMD4MLTraining.jl/main/examples/mnist.jl"))'
+```
+
+If you have already cloned the repository, you can run it using:
+
+```bash
+julia --project=. -e 'import Pkg; Pkg.instantiate(); include("examples/mnist.jl")'
+```
+
+Alternatively, include it in your own training loop:
+
+```julia
+using LMD4MLTraining
+using Flux
+
+# Define your model, data, loss, and optimizer
+# ...
+
+# Setup learner with quantities
+quantities = [LossQuantity(), GradNormQuantity(), DistanceQuantity()]
+learner = Learner(model, data_loader, loss_fn, optim, quantities)
+
+# Train with live plotting
+train!(learner, 10, true)
 ```

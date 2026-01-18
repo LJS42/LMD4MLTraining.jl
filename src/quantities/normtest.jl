@@ -1,10 +1,12 @@
 """
-   NormTestQuantity
-signal-to-noise ration for gradients
+    NormTestQuantity
+Quantity tracking the signal-to-noise ratio for gradients.
 """
 struct NormTestQuantity <: AbstractQuantity end
 
-function compute(q::NormTestQuantity, losses, back, grads, params)
+quantity_key(::NormTestQuantity) = :normtest
+
+function compute(::NormTestQuantity, losses, back, grads, params)
     B = length(losses)
     seed = zeros(eltype(losses), B)
     sample_norm = zeros(Float32, B)
@@ -14,7 +16,7 @@ function compute(q::NormTestQuantity, losses, back, grads, params)
         (g_i,) = back(seed)
         sample_norm[i] = _norm_sq(g_i)
     end
-    return 1/(B*(B-1))*(sum(sample_norm)/_norm_sq(grads)-B)
+    return Float32(1/(B*(B-1))*(sum(sample_norm)/_norm_sq(grads)-B))
 end
 # used pullback method avoid B forward basses -> faster than: 
 #  @inbounds for j in 1:B
