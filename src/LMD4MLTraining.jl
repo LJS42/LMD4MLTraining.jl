@@ -2,12 +2,42 @@ module LMD4MLTraining
 
 using Flux: Flux
 using Zygote: Zygote
-using Makie: Makie, Figure, Axis, Label, Box, GridLayout, Relative, Theme, set_theme!, lines!, linkxaxes!, autolimits!, hidespines!, hidexdecorations!, RGBf, RGBAf, Point2f, Observable, Top, rowgap!, colgap!, rowsize!, colsize!
+using Makie:
+    Makie,
+    Figure,
+    Axis,
+    Label,
+    Box,
+    GridLayout,
+    Relative,
+    Theme,
+    set_theme!,
+    lines!,
+    linkxaxes!,
+    autolimits!,
+    hidespines!,
+    hidexdecorations!,
+    RGBf,
+    RGBAf,
+    Point2f,
+    Observable,
+    Top,
+    rowgap!,
+    colgap!,
+    rowsize!,
+    colsize!
 using WGLMakie: WGLMakie
 using Bonito: Bonito, App, Page, DOM, display
 using Dates: Dates
 using Statistics: Statistics, mean
-using Distributed: Distributed, @spawnat, addprocs, rmprocs, workers, RemoteChannel, fetch
+using Distributed:
+    Distributed,
+    @spawnat,
+    addprocs,
+    rmprocs,
+    workers,
+    RemoteChannel,
+    fetch
 using Base.Threads: @async
 using Logging: Logging, @info, @error
 
@@ -23,5 +53,15 @@ include("learner.jl")
 include("instruments/dashboard.jl")
 include("instruments/renderer.jl")
 
-export AbstractQuantity, Learner, LossQuantity, GradNormQuantity, DistanceQuantity, UpdateSizeQuantity, NormTestQuantity, GradHist1dQuantity, train!, train_loop!, compute, quantity_key, build_dashboard, _run_dashboard, _initialize_plots, _render_loop
+export AbstractQuantity,
+    Learner,
+    LossQuantity,
+    GradNormQuantity,
+    DistanceQuantity,
+    UpdateSizeQuantity,
+    NormTestQuantity,
+    GradHist1dQuantity,
+    train!,
+    compute,
+    quantity_key
 end
