@@ -1,6 +1,6 @@
 # Getting Started
 
-This page shows how to run `LMD4MLTraining.jl` on a small MNIST example and open a live dashboard that visualizes training dynamics in real time.
+This page shows how to install the package and run `LMD4MLTraining.jl` on a small MNIST example to visualize training dynamics in real time.
 
 ---
 
@@ -12,46 +12,58 @@ This page shows how to run `LMD4MLTraining.jl` on a small MNIST example and open
 ---
 
 ## Get the code
+Start a Julia REPL and add the package to the desired environment via: 
 
-Clone the repository and move into the project directory:
+```bash
+julia> using Pkg
+julia> Pkg.add(url="https://github.com/LJS42/LMD4MLTraining.jl")
+```
+Now you can load and use the package: 
+
+```bash
+julia> using LMD4MLTraining
+```
+If instead you want to clone the repository to a desired directory:
 
 ```bash
 git clone <REPOSITORY_URL>
 cd <REPOSITORY_NAME>
 ```
-
---- 
-
-## Start Julia
-After having gotten the project open, start Julia from the project root:
-
-```bash
-julia
-```
-
----
-
-## Activate project and install dependencies:
+Then activate the project and install dependencies: 
 
 ```julia
 pkg> activate .
 pkg> instantiate
 ```
-
 ---
 
-## Load the package
-Exit package mode by pressing backspace and load the package:
+## Quick Start
 
-```julia
-julia> using LMD4MLTraining
+You can run the provided MNIST example to see the dashboard in action without cloning the repository. Copy and paste the following command into your terminal:
+
+```bash
+julia -e 'using Pkg; Pkg.activate(temp=true); Pkg.add([Pkg.PackageSpec(url="https://github.com/LJS42/LMD4MLTraining.jl"), "Flux", "MLDatasets"]); include(download("https://raw.githubusercontent.com/LJS42/LMD4MLTraining.jl/main/examples/mnist.jl"))'
 ```
 
----
+If you have already cloned the repository, you can run it using:
 
-## Run the MNIST live-monitoring example
+```bash
+julia --project=. -e 'import Pkg; Pkg.instantiate(); include("examples/mnist.jl")'
+```
+
+Alternatively, include it in your own training loop:
 
 ```julia
-julia> include("examples/mnist.jl")
+using LMD4MLTraining
+using Flux
+
+# Define your model, data, loss, and optimizer
+# ...
+
+# Setup learner with quantities
+quantities = [LossQuantity(), GradNormQuantity(), DistanceQuantity()]
+learner = Learner(model, data_loader, loss_fn, optim, quantities)
+
+# Train with live plotting
+train!(learner, 10, true)
 ```
-You should now be able to see a browser window with a live dashboard showing various plots including training loss, gradient norms, and parameter updates.
