@@ -76,21 +76,6 @@ function train!(
         end
         
         @info "Dashboard ready at $url, starting training..."
-        
-        # Open the browser from the main process
-        if !haskey(ENV, "CI")
-            try
-                if Sys.isapple()
-                    run(`open $url`)
-                elseif Sys.islinux()
-                    run(`xdg-open $url`)
-                elseif Sys.iswindows()
-                    run(`start $url`)
-                end
-            catch e
-                @warn "Failed to open browser automatically" exception=e
-            end
-        end
 
         try
             # Run training on main process
