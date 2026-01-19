@@ -46,14 +46,11 @@ jobs:
         shell: bash
         run: |
             julia --project -e 'using Pkg; Pkg.test(; coverage=true)'
-
-      - uses: julia-actions/julia-processcoverage@v1
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
         with:
-          directories: src
-      - uses: codecov/codecov-action@v5
-        with:
-          files: lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}
+          files: lcov.info
 
   docs:
     name: Documentation
