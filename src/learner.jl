@@ -50,7 +50,7 @@ function train!(
         end)
 
         # Remote Channel for cross-process communication
-        ch = RemoteChannel(() -> Channel{Tuple{Int,Dict{Symbol,Float32}}}(0))
+        ch = RemoteChannel(() -> Channel{Tuple{Int,Dict{Symbol,QuantityValue}}}(0))
         # Signal channel to ensure dashboard is ready and get its URL
         ready_ch = RemoteChannel(() -> Channel{String}(1))
 
@@ -93,7 +93,7 @@ end
                 rethrow(e)
             end
         finally
-            put!(ch, (-1, Dict{Symbol,Float32}())) # Signal end
+            put!(ch, (-1, Dict{Symbol,QuantityValue}())) # Signal end
             fetch(render_task)
         end
     else 
@@ -108,7 +108,7 @@ Internal training loop that computes quantities and sends them to the display ch
 function train_loop!(
     learner::Learner,
     epochs::Int,
-    channel::Union{Channel{Tuple{Int,Dict{Symbol,Float32}}}, RemoteChannel, Nothing}
+    channel::Union{Channel{Tuple{Int,Dict{Symbol,QuantityValue}}}, RemoteChannel, Nothing}
 )
     step_count = 0
     params0 = [copy(p) for p in Flux.trainables(learner.model)]
@@ -144,7 +144,7 @@ function train_loop!(
                 end
                 
                 if channel !== nothing
-                    computed_quantities = Dict{Symbol,Float32}()
+                    computed_quantities = Dict{Symbol,QuantityValue}()
 
                     # Always include loss
                     loss_q = LossQuantity()

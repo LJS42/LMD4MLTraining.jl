@@ -48,8 +48,8 @@ ylabel(::NormTestQuantity) = "Norm Test"
 
 plot_class(::GradHist1dQuantity) = CLASS_GRADIENT
 plot_title(::GradHist1dQuantity) = "Gradient element historiogram"
-xlabel(::GradHist1dQuantity) = "Gradient Element"
-ylabel(::GradHist1dQuantity) = "Frequency"
+xlabel(::GradHist1dQuantity) = "Bin"
+ylabel(::GradHist1dQuantity) = "Count"
 
 plot_class(::CombinedQuantity) = CLASS_STEPSIZE
 n_axes(::CombinedQuantity) = 2

@@ -81,6 +81,8 @@ function _initialize_plots(axes_dict::Dict{DataType, Axis})
             lines!(ax, obs, color = RGBf(0.98, 0.70, 0.53)) # Peach
         elseif q_type == GradNormQuantity
             lines!(ax, obs, color = RGBf(0.65, 0.89, 0.63)) # Green
+        elseif q_type == GradHist1dQuantity
+            lines!(ax, obs, color = RGBf(0.90, 0.90, 0.55)) # Yellow
         else
             lines!(ax, obs, color = RGBf(0.54, 0.71, 0.98)) # Blue default
         end
@@ -120,6 +122,8 @@ function _render_loop(
                 push!(quantity_data[CombinedQuantity], Point2f(step, val))
             elseif q_type == UpdateSizeQuantity && haskey(observables, UpdateSizeOverlay)
                 push!(quantity_data[UpdateSizeOverlay], Point2f(step, val))
+            elseif q_type == GradHist1dQuantity && haskey(observables, q_type)
+                quantity_data[q_type] = Point2f.(1:length(val), Float32.(val))
             elseif haskey(observables, q_type)
                 push!(quantity_data[q_type], Point2f(step, val))
             end
