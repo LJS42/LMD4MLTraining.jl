@@ -48,7 +48,7 @@ This package is under active development.
 
 ---
 
-## Getting Started
+## MNIST Live Monitoring Example
 
 To get started, you can run the provided MNIST example. This example demonstrates how to integrate `LMD4MLTraining.jl` into a Flux.jl training loop.
 
@@ -99,7 +99,7 @@ When you run this code, a browser window will automatically open with a live das
 
 ## Documentation overview
 
-- **Getting Started**: how to run the MNIST example and open the live dashboard
+- **Getting Started**: how to install the package and run the provided example
 - **Architecture**: overview of the internal design and module structure
 - **Quantities**: description of tracked training quantities
 - **Visualization**: dashboard and plotting design
