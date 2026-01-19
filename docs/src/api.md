@@ -5,7 +5,7 @@
 ```@docs
 Learner
 train!
-train_loop!
+LMD4MLTraining.train_loop!
 compute
 quantity_key
 ```
@@ -25,8 +25,8 @@ GradHist1dQuantity
 ## Dashboard and Visualization
 
 ```@docs
-build_dashboard
-_run_dashboard
-_initialize_plots
-_render_loop
+LMD4MLTraining.build_dashboard
+LMD4MLTraining._run_dashboard
+LMD4MLTraining._initialize_plots
+LMD4MLTraining._render_loop
 ```
