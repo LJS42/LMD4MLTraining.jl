@@ -125,9 +125,6 @@ function train_loop!(
     try
         for epoch in 1:epochs
             for (x, y) in learner.data_loader
-                if step_count == 0
-                    params0 = [copy(p) for p in Flux.trainables(learner.model)]
-                end
                 step_count += 1
                 params_before = [copy(p) for p in Flux.trainables(learner.model)]
 
