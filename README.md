@@ -3,6 +3,8 @@
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://LJS42.github.io/LMD4MLTraining.jl/stable/)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://LJS42.github.io/LMD4MLTraining.jl/dev/)
 [![Build Status](https://github.com/LJS42/LMD4MLTraining.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/LJS42/LMD4MLTraining.jl/actions/workflows/CI.yml?query=branch%3Amain)
+[![codecov](https://codecov.io/gh/LJS42/LMD4MLTraining.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/LJS42/LMD4MLTraining.jl)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 # Live-Monitoring-Debugging-of-ML-Training
 LMD4MLTraining.jl is a Julia package for live monitoring and visual debugging of neural network training in Flux.jl.
 

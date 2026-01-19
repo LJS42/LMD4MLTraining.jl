@@ -37,23 +37,15 @@ jobs:
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-
       - uses: julia-actions/cache@v2
-
       - uses: julia-actions/julia-buildpkg@v1
-
-      - name: Run Julia tests
-        shell: bash
-        run: |
-            julia --project -e 'using Pkg; Pkg.test(; coverage=true)'
-
+      - uses: julia-actions/julia-runtest@v1
       - uses: julia-actions/julia-processcoverage@v1
-        with:
-          directories: src
       - uses: codecov/codecov-action@v5
         with:
           files: lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
 
   docs:
     name: Documentation
