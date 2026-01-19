@@ -40,6 +40,7 @@ using Distributed:
     fetch
 using Base.Threads: @async
 using Logging: Logging, @info, @error
+using Sockets: IPv4, listen, getsockname
 
 # Core cockpit and quantities
 include("quantities/quantity.jl")

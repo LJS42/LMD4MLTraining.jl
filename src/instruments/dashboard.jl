@@ -59,6 +59,10 @@ plot_title(::CombinedQuantity) = "Parameter distances"
 ylabel(::CombinedQuantity) = ylabel(DistanceQuantity())
 overlay_ylabel(::CombinedQuantity) = ylabel(UpdateSizeQuantity())
 
+"""
+    _quantities_to_objects(quantites) -> objs
+Internal. Converts raw list of quantities to track into dashboard plot objects.
+"""
 function _quantities_to_objects(qs::Vector{<:AbstractQuantity})
     objs = AbstractQuantity[]
     seen = Set{DataType}()
@@ -91,6 +95,10 @@ function _quantities_to_objects(qs::Vector{<:AbstractQuantity})
     end
 end
 
+"""
+    _objects_to panels(objs)-> panels
+Internal. Group objects in dashboard panels if belonging to the same class (step size or gradients).
+"""
 function _objects_to_panels(objs::Vector{<:AbstractQuantity})
     steps = [o for o in objs if plot_class(o) == CLASS_STEPSIZE]
     grads = [o for o in objs if plot_class(o) == CLASS_GRADIENT]
@@ -214,7 +222,7 @@ end
 
 """
     build_dashboard(quantities) -> (fig, axes_dict)
-Construct the dashboard layout for the given quantities and return the figure and axis mapping.
+Construct the dashboard layout for the given quantities and return the figure and axis mapping. Loss quantity is always plotted
 """
 function build_dashboard(qs::Vector{<:AbstractQuantity})
     set_theme!(Theme(

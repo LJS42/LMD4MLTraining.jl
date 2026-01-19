@@ -1,3 +1,11 @@
+function _pick_free_port()
+    sock = listen(IPv4(127,0,0,1), 0) 
+    addr = getsockname(sock)
+    close(sock)
+    port = Int(addr[end]) 
+    return port
+end
+
 """
     run_dashboard(channel, ready_channel, quantities)
 Initialize and run the dashboard on the current process.
@@ -8,10 +16,11 @@ function _run_dashboard(channel::Union{Channel, RemoteChannel}, ready_channel::R
     
     if !haskey(ENV, "CI")
         WGLMakie.activate!(resize_to=:body)
-        
-        # Start a server explicitly
-        server = Bonito.Server("0.0.0.0", 9284)
-        
+
+        # Start a server explicitly   
+        port = _pick_free_port()
+        server = Bonito.Server("0.0.0.0", port) 
+            
         app = App() do session
             return DOM.div(
                 fig,
@@ -22,18 +31,30 @@ function _run_dashboard(channel::Union{Channel, RemoteChannel}, ready_channel::R
         
         # Route the app to the root
         Bonito.route!(server, "/" => app)
-        
-        url = "http://127.0.0.1:9284"
+        url = "http://127.0.0.1:$port"
         
         # Force an initial update to trigger rendering and resizing
         for obs in values(observables)
             notify(obs)
         end
         notify(fig.scene.events.window_area)
-        
+
         # Signal that we are ready and provide the URL
         put!(ready_channel, url)
         yield()
+
+        try
+            return _render_loop(channel, fig, axes_dict, quantities, observables)
+        finally
+            # Ensure the server is shut down so reruns don't reuse the old dashboard
+            try
+                close(server)
+            catch e
+                @warn "Failed to close Bonito server" exception=e
+            end
+        end
+
+            
     else
         # In CI, just signal ready with a dummy URL
         put!(ready_channel, "http://localhost:CI")

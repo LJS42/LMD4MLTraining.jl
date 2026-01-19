@@ -82,13 +82,13 @@ optim = Flux.setup(Adam(3f-4), model)
 loss_fn(ŷ, y) = vec(Flux.logitcrossentropy(ŷ, y; agg=identity))
 
 # 4. Define quantities to track
-quantities = [
+quantities = LMD4MLTraining.AbstractQuantity[
     LossQuantity(), 
     GradNormQuantity(), 
     DistanceQuantity(), 
     UpdateSizeQuantity(), 
-    NormTestQuantity()
-]
+    GradNormQuantity()]
+#quantities = LMD4MLTraining.AbstractQuantity[] -> if no quantities selected, loss quantity will be plotted
 
 # 5. Create Learner and start training with plots
 learner = Learner(model, get_data_loader(), loss_fn, optim, quantities)

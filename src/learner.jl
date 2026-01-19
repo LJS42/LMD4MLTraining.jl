@@ -55,8 +55,14 @@ function train!(
         ready_ch = RemoteChannel(() -> Channel{String}(1))
 
         # Start Dashboard on worker process. 
-        # We ONLY send the quantities to avoid serializing the whole learner (model, data, etc.)
-        qs = learner.quantities
+        # We ONLY send the quantities to avoid serializing the whole learner (model, data, etc.). ALWAYS send the loss. 
+        if isempty(learner.quantities)
+            qs = AbstractQuantity[LossQuantity()]
+        elseif any(q -> q isa LossQuantity, learner.quantities)
+            qs = learner.quantities
+        else
+            qs = vcat(AbstractQuantity[LossQuantity()], learner.quantities)
+end
         render_task = @spawnat worker_id begin
             try
                 _run_dashboard(ch, ready_ch, qs)
@@ -139,13 +145,20 @@ function train_loop!(
                 
                 if channel !== nothing
                     computed_quantities = Dict{Symbol,Float32}()
+
+                    # Always include loss
+                    loss_q = LossQuantity()
+                    computed_quantities[quantity_key(loss_q)] = compute(loss_q, losses, back, grads, params)
+
+                    # Include requested quantities (skip LossQuantity to avoid duplicates)
                     for q in learner.quantities
-                        value = compute(q, losses, back, grads, params)
-                        computed_quantities[quantity_key(q)] = value
+                        q isa LossQuantity && continue
+                        computed_quantities[quantity_key(q)] = compute(q, losses, back, grads, params)
                     end
+
                     put!(channel, (step_count, computed_quantities))
                     yield()
-                end
+end
             end
             @info "Epoch $epoch complete"
         end
