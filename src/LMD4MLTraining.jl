@@ -15,6 +15,8 @@ using Makie:
     Theme,
     set_theme!,
     lines!,
+    scatter!,
+    barplot!,
     linkxaxes!,
     autolimits!,
     hidespines!,

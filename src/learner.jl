@@ -62,7 +62,7 @@ function train!(
             qs = learner.quantities
         else
             qs = vcat(AbstractQuantity[LossQuantity()], learner.quantities)
-end
+        end
         render_task = @spawnat worker_id begin
             try
                 _run_dashboard(ch, ready_ch, qs)
