@@ -1,6 +1,6 @@
 """
     NormTestQuantity
-Quantity tracking the signal-to-noise ratio for gradients.
+Quantity tracking the normalized gradient noise.
 """
 struct NormTestQuantity <: AbstractQuantity end
 

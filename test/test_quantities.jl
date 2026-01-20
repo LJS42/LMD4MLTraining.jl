@@ -64,10 +64,13 @@ using Flux
     end
 
     @testset "GradHist1dQuantity" begin
-        q = GradHist1dQuantity()
+        q = GradHist1dQuantity(nbins=30, maxval=5.0)
         @test quantity_key(q) == :gradhist1d
-        val = compute(q, losses, back, grads, params)
-        @test val isa Dict
-        @test haskey(val, :mean_grad)
+        hist = compute(q, losses, back, grads, params)
+        @test hist isa Vector{Float32}
+        @test length(hist) == q.nbins
+        @test all(>=(0f0), hist)
+        @test sum(hist) > 0f0
     end
+
 end

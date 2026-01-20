@@ -1,5 +1,7 @@
 module LMD4MLTraining
 
+const QuantityValue = Union{Float32, Vector{Float32}}
+
 using Flux: Flux
 using Zygote: Zygote
 using Makie:
@@ -13,6 +15,8 @@ using Makie:
     Theme,
     set_theme!,
     lines!,
+    scatter!,
+    barplot!,
     linkxaxes!,
     autolimits!,
     hidespines!,

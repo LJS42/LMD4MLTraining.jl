@@ -72,15 +72,17 @@ function _initialize_plots(axes_dict::Dict{DataType, Axis})
     for (q_type, ax) in axes_dict
         obs = Observable(Point2f[])
         if q_type == CombinedQuantity
-            lines!(ax, obs, color = RGBf(0.54, 0.71, 0.98)) # Blue
+            scatter!(ax, obs, color = RGBf(0.54, 0.71, 0.98)) # Blue
         elseif q_type == UpdateSizeOverlay
-            lines!(ax, obs, color = RGBf(0.96, 0.76, 0.91)) # Pink
+            scatter!(ax, obs, color = RGBf(0.96, 0.76, 0.91)) # Pink
         elseif q_type == LossQuantity
             lines!(ax, obs, color = RGBf(0.54, 0.71, 0.98)) # Blue
         elseif q_type == DistanceQuantity
-            lines!(ax, obs, color = RGBf(0.98, 0.70, 0.53)) # Peach
+            scatter!(ax, obs, color = RGBf(0.98, 0.70, 0.53)) # Peach
         elseif q_type == GradNormQuantity
             lines!(ax, obs, color = RGBf(0.65, 0.89, 0.63)) # Green
+        elseif q_type == GradHist1dQuantity
+            barplot!(ax, obs, color = RGBf(0.90, 0.90, 0.55)) # Yellow
         else
             lines!(ax, obs, color = RGBf(0.54, 0.71, 0.98)) # Blue default
         end
@@ -120,6 +122,12 @@ function _render_loop(
                 push!(quantity_data[CombinedQuantity], Point2f(step, val))
             elseif q_type == UpdateSizeQuantity && haskey(observables, UpdateSizeOverlay)
                 push!(quantity_data[UpdateSizeOverlay], Point2f(step, val))
+            elseif q_type == GradHist1dQuantity && haskey(observables, q_type)
+                nb = length(val)
+                mv = Float32(q.maxval)
+                w  = 2f0 * mv / nb
+                xs = (-mv + w/2f0) .+ (0:nb-1) .* w 
+                quantity_data[q_type] = Point2f.(Float32.(xs), Float32.(val))
             elseif haskey(observables, q_type)
                 push!(quantity_data[q_type], Point2f(step, val))
             end

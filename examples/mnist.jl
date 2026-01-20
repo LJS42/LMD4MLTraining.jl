@@ -28,7 +28,7 @@ loss_fn(ŷ, y) = vec(Flux.logitcrossentropy(ŷ, y; agg=identity))
 
 function main()
     # Define quantities to track
-    quantities = [LossQuantity(), GradNormQuantity(), DistanceQuantity(), UpdateSizeQuantity(), NormTestQuantity()]
+    quantities = [LossQuantity(), GradNormQuantity(), DistanceQuantity(), UpdateSizeQuantity(), NormTestQuantity(), GradHist1dQuantity()]
 
     model = get_model()
     data_loader = get_data_loader()
