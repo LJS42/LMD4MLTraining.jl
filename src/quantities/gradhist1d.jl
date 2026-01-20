@@ -11,10 +11,7 @@ end
 
 quantity_key(q::GradHist1dQuantity) = :gradhist1d
 
-"""
-    _histcounts_1d!
-Internal. Accumulate a single signed scalar values into a fixed-range 1D histogram.
-"""
+#Internal. Accumulate a single signed scalar values into a fixed-range 1D histogram.
 function _histcounts_1d!(counts::Vector{Float32}, g::Real, nbins::Int, maxval::Real)
     mv = Float32(maxval)
     x = clamp(Float32(g), -mv, mv) 
