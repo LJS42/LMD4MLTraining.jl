@@ -12,7 +12,8 @@ using WGLMakie
             DistanceQuantity(),
             UpdateSizeQuantity(),
             NormTestQuantity(),
-            GradHist1dQuantity()
+            GradHist1dQuantity(),
+            CombinedQuantity(),
         ]
 
         for q in quantities
@@ -71,4 +72,37 @@ using WGLMakie
 
         @test length(observables[LossQuantity][]) == 2
     end
+
+    @testset "_pick_free_port" begin
+        port = LMD4MLTraining._pick_free_port()
+
+        @test port isa Int
+        @test port > 0
+        @test port ≤ 65535
+    end
+
+    @testset "GradHist1dQuantity branch" begin
+        q = GradHist1dQuantity(maxval = 1.0)
+        quantities = [q]
+
+        quantity_data = Dict{DataType, Any}()
+        quantity_data[GradHist1dQuantity] = Point2f[]
+
+        observables = Dict(GradHist1dQuantity => Observable(Point2f[]))
+
+        step = 1
+        val  = rand(Float32, 10) 
+
+        q_type = GradHist1dQuantity
+
+        nb = length(val)
+        mv = Float32(q.maxval)
+        w  = 2f0 * mv / nb
+        xs = (-mv + w/2f0) .+ (0:nb-1) .* w 
+
+        quantity_data[q_type] = Point2f.(Float32.(xs), Float32.(val))
+
+        @test length(quantity_data[GradHist1dQuantity]) == nb
+    end
+
 end
