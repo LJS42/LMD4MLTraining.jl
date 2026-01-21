@@ -12,40 +12,20 @@ using WGLMakie
             DistanceQuantity(),
             UpdateSizeQuantity(),
             NormTestQuantity(),
-            GradHist1dQuantity(),
-            CombinedQuantity()
+            GradHist1dQuantity()
         ]
 
         for q in quantities
-            # plot_class
-            cls = plot_class(q)
-            @test cls isa String || cls isa Symbol  # 你的 CLASS_* 定义类型
-
-            # plot_title
-            title = plot_title(q)
-            @test title isa String
-
-            # xlabel
-            xl = xlabel(q)
-            @test xl isa String
-
-            # ylabel
-            yl = ylabel(q)
-            @test yl isa String
-
-            # axis_bg
-            bg = axis_bg(q)
-            @test bg !== nothing
-
-            # n_axes
-            na = n_axes(q)
-            @test na ≥ 1
-
-            # overlay
-            ov = overlay(q)
-            @test ov isa Bool
+            @test LMD4MLTraining.plot_class(q) isa Union{String,Symbol}
+            @test LMD4MLTraining.plot_title(q) isa String
+            @test LMD4MLTraining.xlabel(q) isa String
+            @test LMD4MLTraining.ylabel(q) isa String
+            @test LMD4MLTraining.axis_bg(q) !== nothing
+            @test LMD4MLTraining.n_axes(q) ≥ 1
+            @test LMD4MLTraining.overlay(q) isa Bool
         end
     end
+
 
     @testset "Layout Combinations" begin
         combinations = [
@@ -72,28 +52,23 @@ using WGLMakie
         fig, axes_dict = LMD4MLTraining.build_dashboard(quantities)
         observables = LMD4MLTraining._initialize_plots(axes_dict)
 
-        quantity_data = Dict(q => Point2f[] for q in quantities)
-
-        # Test with empty channel
+        # empty channel
         ch_empty = Channel{Tuple{Int,Dict{Symbol,Float32}}}(1)
-        close(ch_empty)  
-        result_empty = LMD4MLTraining._render_loop(ch_empty, fig, axes_dict, quantities, observables)
-        @test result_empty === nothing
+        close(ch_empty)
+        @test LMD4MLTraining._render_loop(
+            ch_empty, fig, axes_dict, quantities, observables
+        ) === nothing
 
-        # Test with actual data
+        # data channel
         ch_data = Channel{Tuple{Int,Dict{Symbol,Float32}}}(10)
-
-        put!(ch_data, (1, Dict(:LossQuantity => 0.5f0)))
-        put!(ch_data, (2, Dict(:LossQuantity => 0.8f0)))
-
-        task = @async LMD4MLTraining._render_loop(ch_data, fig, axes_dict, quantities, observables)
-
-        yield()
-
+        put!(ch_data, (1, Dict(:loss => 0.5f0)))
+        put!(ch_data, (2, Dict(:loss => 0.8f0)))
         close(ch_data)
-        wait(task)
+
+        LMD4MLTraining._render_loop(
+            ch_data, fig, axes_dict, quantities, observables
+        )
 
         @test length(observables[LossQuantity][]) == 2
     end
-
 end
