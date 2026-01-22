@@ -3,6 +3,10 @@ using Test
 using Flux
 
 @testset "Quantities" begin
+
+    @testset "_norm_sq Nothing" begin
+        @test LMD4MLTraining._norm_sq(nothing) === 0.0f0
+    end
     
     @testset "quantity_key" begin
         @test quantity_key(LossQuantity())      == :loss
