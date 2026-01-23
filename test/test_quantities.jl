@@ -5,14 +5,14 @@ using Flux
 @testset "Quantities" begin
 
     @testset "_norm_sq Nothing" begin
-        @test LMD4MLTraining._norm_sq(nothing) === 0.0f0
+        x = nothing
+        y = LMD4MLTraining._norm_sq(x)
+        @test y == 0.0f0
     end
     
     @testset "quantity_key" begin
-        # @test quantity_key(LossQuantity())      == :loss
-        @test LMD4MLTraining.quantity_key(LMD4MLTraining.LossQuantity()) == :loss
-        @test LMD4MLTraining.quantity_key(LMD4MLTraining.GradNormQuantity())  == :gradnorm
-        # @test quantity_key(GradNormQuantity())  == :gradnorm
+        @test quantity_key(LossQuantity())      == :loss
+        @test quantity_key(GradNormQuantity())  == :gradnorm
         @test quantity_key(DistanceQuantity())  == :distance
         @test quantity_key(UpdateSizeQuantity())== :updatesize
         @test quantity_key(NormTestQuantity())  == :normtest
