@@ -9,8 +9,10 @@ using Flux
     end
     
     @testset "quantity_key" begin
-        @test quantity_key(LossQuantity())      == :loss
-        @test quantity_key(GradNormQuantity())  == :gradnorm
+        # @test quantity_key(LossQuantity())      == :loss
+        @test LMD4MLTraining.quantity_key(LMD4MLTraining.LossQuantity()) == :loss
+        @test LMD4MLTraining.quantity_key(LMD4MLTraining.GradNormQuantity())  == :gradnorm
+        # @test quantity_key(GradNormQuantity())  == :gradnorm
         @test quantity_key(DistanceQuantity())  == :distance
         @test quantity_key(UpdateSizeQuantity())== :updatesize
         @test quantity_key(NormTestQuantity())  == :normtest
