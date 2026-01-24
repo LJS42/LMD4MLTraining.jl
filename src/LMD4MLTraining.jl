@@ -66,6 +66,7 @@ export AbstractQuantity,
     UpdateSizeQuantity,
     NormTestQuantity,
     GradHist1dQuantity,
+    CombinedQuantity,
     train!,
     compute,
     quantity_key

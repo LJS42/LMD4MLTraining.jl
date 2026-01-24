@@ -3,6 +3,16 @@ using Test
 using Flux
 
 @testset "Quantities" begin
+    
+    @testset "quantity_key" begin
+        @test quantity_key(LossQuantity())      == :loss
+        @test quantity_key(GradNormQuantity())  == :gradnorm
+        @test quantity_key(DistanceQuantity())  == :distance
+        @test quantity_key(UpdateSizeQuantity())== :updatesize
+        @test quantity_key(NormTestQuantity())  == :normtest
+        @test quantity_key(GradHist1dQuantity())== :gradhist1d
+    end
+
     # Setup dummy data for testing quantities
     model = Chain(Dense(2, 1))
     x = randn(Float32, 2, 4)
@@ -30,7 +40,6 @@ using Flux
 
     @testset "GradNormQuantity" begin
         q = GradNormQuantity()
-        @test quantity_key(q) == :gradnorm
         val = compute(q, losses, back, grads, params)
         @test val isa Float32
         @test val >= 0
@@ -38,7 +47,6 @@ using Flux
 
     @testset "DistanceQuantity" begin
         q = DistanceQuantity()
-        @test quantity_key(q) == :distance
         val = compute(q, losses, back, grads, params)
         @test val isa Float32
         @test val >= 0
@@ -48,7 +56,6 @@ using Flux
 
     @testset "UpdateSizeQuantity" begin
         q = UpdateSizeQuantity()
-        @test quantity_key(q) == :updatesize
         val = compute(q, losses, back, grads, params)
         @test val isa Float32
         @test val >= 0
@@ -58,14 +65,12 @@ using Flux
 
     @testset "NormTestQuantity" begin
         q = NormTestQuantity()
-        @test quantity_key(q) == :normtest
         val = compute(q, losses, back, grads, params)
         @test val isa Float32
     end
 
     @testset "GradHist1dQuantity" begin
         q = GradHist1dQuantity(nbins=30, maxval=5.0)
-        @test quantity_key(q) == :gradhist1d
         hist = compute(q, losses, back, grads, params)
         @test hist isa Vector{Float32}
         @test length(hist) == q.nbins
