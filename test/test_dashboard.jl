@@ -89,7 +89,7 @@ using WGLMakie
     end
 
     @testset "Renderer special branches" begin
-        q_hist = GradHist1dQuantity(maxval=1.0)
+        q_hist = GradHist1dQuantity(maxval = 1.0)
         quantities = [LossQuantity(), DistanceQuantity(), UpdateSizeQuantity(), q_hist]
 
         fig, axes_dict = LMD4MLTraining.build_dashboard(quantities)
@@ -98,20 +98,32 @@ using WGLMakie
         ch = Channel{Tuple{Int,Dict{Symbol,LMD4MLTraining.QuantityValue}}}(10)
 
         hist = rand(Float32, 10)
-        put!(ch, (1, Dict{Symbol,LMD4MLTraining.QuantityValue}(
-            :loss => 0.5f0,
-            :distance => 0.1f0,
-            :updatesize => 0.01f0,
-            :gradhist1d => hist,
-        )))
+        put!(
+            ch,
+            (
+                1,
+                Dict{Symbol,LMD4MLTraining.QuantityValue}(
+                    :loss => 0.5f0,
+                    :distance => 0.1f0,
+                    :updatesize => 0.01f0,
+                    :gradhist1d => hist,
+                ),
+            ),
+        )
 
         hist2 = rand(Float32, 10)
-        put!(ch, (2, Dict{Symbol,LMD4MLTraining.QuantityValue}(
-            :loss => 0.8f0,
-            :distance => 0.2f0,
-            :updatesize => 0.02f0,
-            :gradhist1d => hist2,
-        )))
+        put!(
+            ch,
+            (
+                2,
+                Dict{Symbol,LMD4MLTraining.QuantityValue}(
+                    :loss => 0.8f0,
+                    :distance => 0.2f0,
+                    :updatesize => 0.02f0,
+                    :gradhist1d => hist2,
+                ),
+            ),
+        )
 
         close(ch)
 
