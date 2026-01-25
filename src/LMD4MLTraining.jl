@@ -1,6 +1,6 @@
 module LMD4MLTraining
 
-const QuantityValue = Union{Float32, Vector{Float32}}
+const QuantityValue = Union{Float32,Vector{Float32}}
 
 using Flux: Flux
 using Zygote: Zygote
@@ -34,14 +34,7 @@ using WGLMakie: WGLMakie
 using Bonito: Bonito, App, Page, DOM, display
 using Dates: Dates
 using Statistics: Statistics, mean
-using Distributed:
-    Distributed,
-    @spawnat,
-    addprocs,
-    rmprocs,
-    workers,
-    RemoteChannel,
-    fetch
+using Distributed: Distributed, @spawnat, addprocs, rmprocs, workers, RemoteChannel, fetch
 using Base.Threads: @async
 using Logging: Logging, @info, @error
 using Sockets: IPv4, listen, getsockname

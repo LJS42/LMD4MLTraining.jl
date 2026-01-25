@@ -1,8 +1,8 @@
 function _pick_free_port()
-    sock = listen(IPv4(127,0,0,1), 0) 
+    sock = listen(IPv4(127, 0, 0, 1), 0)
     addr = getsockname(sock)
     close(sock)
-    port = Int(addr[end]) 
+    port = Int(addr[end])
     return port
 end
 
@@ -10,29 +10,35 @@ end
     run_dashboard(channel, ready_channel, quantities)
 Initialize and run the dashboard on the current process.
 """
-function _run_dashboard(channel::Union{Channel, RemoteChannel}, ready_channel::RemoteChannel, quantities::Vector{<:AbstractQuantity})
+function _run_dashboard(
+    channel::Union{Channel,RemoteChannel},
+    ready_channel::RemoteChannel,
+    quantities::Vector{<:AbstractQuantity},
+)
     fig, axes_dict = build_dashboard(quantities)
     observables = _initialize_plots(axes_dict)
-    
+
     if !haskey(ENV, "CI")
-        WGLMakie.activate!(resize_to=:body)
+        WGLMakie.activate!(resize_to = :body)
 
         # Start a server explicitly   
         port = _pick_free_port()
-        server = Bonito.Server("0.0.0.0", port) 
-            
+        server = Bonito.Server("0.0.0.0", port)
+
         app = App() do session
             return DOM.div(
                 fig,
-                DOM.style("body { margin: 0 !important; padding: 0 !important; overflow: hidden !important; }"),
-                style="width: 100%; height: 100%;"
+                DOM.style(
+                    "body { margin: 0 !important; padding: 0 !important; overflow: hidden !important; }",
+                ),
+                style = "width: 100%; height: 100%;",
             )
         end
-        
+
         # Route the app to the root
         Bonito.route!(server, "/" => app)
         url = "http://127.0.0.1:$port"
-        
+
         # Force an initial update to trigger rendering and resizing
         for obs in values(observables)
             notify(obs)
@@ -50,11 +56,11 @@ function _run_dashboard(channel::Union{Channel, RemoteChannel}, ready_channel::R
             try
                 close(server)
             catch e
-                @warn "Failed to close Bonito server" exception=e
+                @warn "Failed to close Bonito server" exception = e
             end
         end
 
-            
+
     else
         # In CI, just signal ready with a dummy URL
         put!(ready_channel, "http://localhost:CI")
@@ -67,7 +73,7 @@ end
     initialize_plots(axes_dict) -> observables
 Initialize line plots on the provided axes and return a dictionary of observables.
 """
-function _initialize_plots(axes_dict::Dict{DataType, Axis})
+function _initialize_plots(axes_dict::Dict{DataType,Axis})
     observables = Dict{DataType,Observable}()
     for (q_type, ax) in axes_dict
         obs = Observable(Point2f[])
@@ -96,11 +102,11 @@ end
 Consume training updates from `channel` and update the dashboard in real time.
 """
 function _render_loop(
-    channel::Union{Channel, RemoteChannel},
+    channel::Union{Channel,RemoteChannel},
     fig::Figure,
-    axes_dict::Dict{DataType, Axis},
+    axes_dict::Dict{DataType,Axis},
     quantities::Vector{<:AbstractQuantity},
-    observables::Dict{DataType, Observable}
+    observables::Dict{DataType,Observable},
 )
     quantity_data = Dict{DataType,Vector{Point2f}}(
         q_type => copy(obs[]) for (q_type, obs) in observables
@@ -116,7 +122,7 @@ function _render_loop(
             q_key = quantity_key(q)
             haskey(received_quantities, q_key) || continue
             val = received_quantities[q_key]
-            
+
             q_type = typeof(q)
             if q_type == DistanceQuantity && haskey(observables, CombinedQuantity)
                 push!(quantity_data[CombinedQuantity], Point2f(step, val))
@@ -125,8 +131,8 @@ function _render_loop(
             elseif q_type == GradHist1dQuantity && haskey(observables, q_type)
                 nb = length(val)
                 mv = Float32(q.maxval)
-                w  = 2f0 * mv / nb
-                xs = (-mv + w/2f0) .+ (0:nb-1) .* w 
+                w = 2.0f0 * mv / nb
+                xs = (-mv + w / 2.0f0) .+ (0:nb-1) .* w
                 quantity_data[q_type] = Point2f.(Float32.(xs), Float32.(val))
             elseif haskey(observables, q_type)
                 push!(quantity_data[q_type], Point2f(step, val))
