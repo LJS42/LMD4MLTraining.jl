@@ -1,7 +1,7 @@
 name = "LMD4MLTraining"
 uuid = "916db72f-d5ae-442a-ab7c-396ee51ba326"
-authors = ["Group"]
 version = "1.0.0-DEV"
+authors = ["Group"]
 
 [deps]
 Bonito = "824d6782-a2ef-11e9-3a09-e5662e0c26f8"
@@ -28,9 +28,18 @@ Statistics = "1.11.1"
 WGLMakie = "0.13.8"
 Zygote = "0.7.10"
 julia = "1.11"
+Aqua = "0.8"
+Test = "1"
+Profile = "1"
+BenchmarkTools = "1.6.3"
+Distributed = "1.11.0"
 
 [extras]
+Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+Profile = "9abbd945-dff8-562f-b5e8-e1ebf5ef1b79"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test"]
+test = ["Test","Aqua"]
+dev = ["Profile","BenchmarkTools"]

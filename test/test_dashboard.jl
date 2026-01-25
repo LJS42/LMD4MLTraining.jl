@@ -34,15 +34,28 @@ using WGLMakie
             [LossQuantity(), GradNormQuantity()],
             [LossQuantity(), GradNormQuantity(), DistanceQuantity()],
             [LossQuantity(), GradNormQuantity(), DistanceQuantity(), UpdateSizeQuantity()],
-            [LossQuantity(), GradNormQuantity(), DistanceQuantity(), UpdateSizeQuantity(), NormTestQuantity()],
-            [LossQuantity(), GradNormQuantity(), DistanceQuantity(), UpdateSizeQuantity(), NormTestQuantity(), GradHist1dQuantity()]
+            [
+                LossQuantity(),
+                GradNormQuantity(),
+                DistanceQuantity(),
+                UpdateSizeQuantity(),
+                NormTestQuantity(),
+            ],
+            [
+                LossQuantity(),
+                GradNormQuantity(),
+                DistanceQuantity(),
+                UpdateSizeQuantity(),
+                NormTestQuantity(),
+                GradHist1dQuantity(),
+            ],
         ]
-        
+
         for qs in combinations
             fig, axes_dict = LMD4MLTraining.build_dashboard(qs)
             @test fig isa Figure
             @test !isempty(axes_dict)
-            
+
             observables = LMD4MLTraining._initialize_plots(axes_dict)
             @test length(observables) >= length(qs)
         end
@@ -57,7 +70,11 @@ using WGLMakie
         ch_empty = Channel{Tuple{Int,Dict{Symbol,Float32}}}(1)
         close(ch_empty)
         @test LMD4MLTraining._render_loop(
-            ch_empty, fig, axes_dict, quantities, observables
+            ch_empty,
+            fig,
+            axes_dict,
+            quantities,
+            observables,
         ) === nothing
 
         # data channel
@@ -66,9 +83,7 @@ using WGLMakie
         put!(ch_data, (2, Dict(:loss => 0.8f0)))
         close(ch_data)
 
-        LMD4MLTraining._render_loop(
-            ch_data, fig, axes_dict, quantities, observables
-        )
+        LMD4MLTraining._render_loop(ch_data, fig, axes_dict, quantities, observables)
 
         @test length(observables[LossQuantity][]) == 2
     end
@@ -85,20 +100,20 @@ using WGLMakie
         q = GradHist1dQuantity(maxval = 1.0)
         quantities = [q]
 
-        quantity_data = Dict{DataType, Any}()
+        quantity_data = Dict{DataType,Any}()
         quantity_data[GradHist1dQuantity] = Point2f[]
 
         observables = Dict(GradHist1dQuantity => Observable(Point2f[]))
 
         step = 1
-        val  = rand(Float32, 10) 
+        val = rand(Float32, 10)
 
         q_type = GradHist1dQuantity
 
         nb = length(val)
         mv = Float32(q.maxval)
-        w  = 2f0 * mv / nb
-        xs = (-mv + w/2f0) .+ (0:nb-1) .* w 
+        w = 2.0f0 * mv / nb
+        xs = (-mv + w / 2.0f0) .+ (0:nb-1) .* w
 
         quantity_data[q_type] = Point2f.(Float32.(xs), Float32.(val))
 
