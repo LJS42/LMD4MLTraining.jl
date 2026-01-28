@@ -30,8 +30,6 @@ Currently implemented features include:
 - Monitoring of user defined quantities: loss, gradient norm, distance, update size, norm test and gradient history.
 - Modular design for adding additional quantities and visual instruments
 
-## Getting Started
-
 ### Core Concepts
 
 The central object in `LMD4MLTraining` is the `Learner`. It bundles everything needed for training and monitoring:
