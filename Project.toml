@@ -16,31 +16,31 @@ WGLMakie = "276b4fcb-3e11-5398-bf8b-a0c2d153d008"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
+Aqua = "0.8"
+BenchmarkTools = "1.6.3"
 Bonito = "4.1.11"
 Dates = "1.11.0"
+Distributed = "1.11.0"
 Flux = "0.16.5"
 Logging = "1.11"
 MLDatasets = "0.7.20"
 Makie = "0.24.8"
+Profile = "1"
 Sockets = "1.11.0"
 Statistics = "1.11.1"
+Test = "1"
 WGLMakie = "0.13.8"
 Zygote = "0.7.10"
 julia = "1.11"
-Aqua = "0.8"
-Test = "1"
-Profile = "1"
-BenchmarkTools = "1.6.3"
-Distributed = "1.11.0"
 
 [extras]
-MLDatasets = "eb30cadb-4394-5ae3-aed4-317e484a6458"
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+MLDatasets = "eb30cadb-4394-5ae3-aed4-317e484a6458"
 Profile = "9abbd945-dff8-562f-b5e8-e1ebf5ef1b79"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test","Aqua"]
-dev = ["Profile","BenchmarkTools"]
+dev = ["Profile", "BenchmarkTools"]
 example = ["MLDatasets"]
+test = ["Test", "Aqua"]
