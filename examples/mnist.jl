@@ -1,4 +1,3 @@
-using Distributed
 using LMD4MLTraining
 using Flux
 using MLDatasets
@@ -36,7 +35,7 @@ function main()
     
     learner = Learner(model, data_loader, loss_fn, optim, quantities)
 
-    train!(learner, 1, true)
+    train!(learner, 1, true, 50)
 
     println("Training finished. Press Enter to exit.")
     readline()

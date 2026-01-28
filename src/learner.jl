@@ -27,7 +27,7 @@ end
     train!(learner, epochs, with_plots)
 Train a `Learner` for a number of epochs, optionally with live plotting.
 """
-function train!(learner::Learner, epochs::Int, with_plots::Bool)
+function train!(learner::Learner, epochs::Int, with_plots::Bool, track_every::Int=1)
     if with_plots
         # Multi-process setup: Dashboard happens on worker, Training on main
         if length(workers()) == 1 && workers()[1] == 1
@@ -81,7 +81,7 @@ function train!(learner::Learner, epochs::Int, with_plots::Bool)
 
         try
             # Run training on main process
-            train_loop!(learner, epochs, ch)
+            train_loop!(learner, epochs, ch, track_every)
         catch e
             if e isa InterruptException
                 @info "Training interrupted by user"
@@ -93,7 +93,7 @@ function train!(learner::Learner, epochs::Int, with_plots::Bool)
             fetch(render_task)
         end
     else
-        train_loop!(learner, epochs, nothing)
+        train_loop!(learner, epochs, nothing, track_every)
     end
 end
 
@@ -105,6 +105,7 @@ function train_loop!(
     learner::Learner,
     epochs::Int,
     channel::Union{Channel{Tuple{Int,Dict{Symbol,QuantityValue}}},RemoteChannel,Nothing},
+    track_every::Int,
 )
     step_count = 0
     params0 = [copy(p) for p in Flux.trainables(learner.model)]
@@ -139,7 +140,10 @@ function train_loop!(
                     println("Norm test: ", nt_val)
                 end
 
-                if channel !== nothing
+                #Only compute quantities every k steps (or always if k==1)
+                track = (track_every == 1) || (step_count % track_every == 0)
+
+                if channel !== nothing && track
                     computed_quantities = Dict{Symbol,QuantityValue}()
 
                     # Always include loss

@@ -23,7 +23,7 @@ Pkg.add(url="https://github.com/LJS42/LMD4MLTraining.jl")
 ```
 
 ## Features
-Currently implemented features and features still in development include:
+Currently implemented features include:
 
 - Integration with standard Flux/Zygote training loops
 - Live visualization using WGLMakie.jl
@@ -95,5 +95,5 @@ quantities = [LossQuantity(), GradNormQuantity(), DistanceQuantity()]
 learner = Learner(model, data_loader, loss_fn, optim, quantities)
 
 # Train with live plotting
-train!(learner, 10, true)
+train!(learner; epochs=10, with_plots=true, track_every=1)
 ```

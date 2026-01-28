@@ -1,0 +1,11 @@
+name = "LMD4MLTrainingExamples"
+uuid = "f6237a2c-3a58-4e6c-8b6f-7e8c0b7b2a8a"
+version = "0.1.0"
+
+[deps]
+Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
+LMD4MLTraining = "916db72f-d5ae-442a-ab7c-396ee51ba326"
+MLDatasets = "eb30cadb-4394-5ae3-aed4-317e484a6458"
+
+[sources]
+LMD4MLTraining = { path = ".." }

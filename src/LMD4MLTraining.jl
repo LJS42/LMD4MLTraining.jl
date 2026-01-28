@@ -15,7 +15,6 @@ using Makie:
     Theme,
     set_theme!,
     lines!,
-    scatter!,
     barplot!,
     linkxaxes!,
     autolimits!,
@@ -29,7 +28,10 @@ using Makie:
     rowgap!,
     colgap!,
     rowsize!,
-    colsize!
+    colsize!,
+    axislegend, 
+    activate_interaction!,
+    DataInspector
 using WGLMakie: WGLMakie
 using Bonito: Bonito, App, Page, DOM, display
 using Dates: Dates

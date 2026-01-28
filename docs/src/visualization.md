@@ -6,7 +6,7 @@ This page describes the visualization components of the package.
 
 ## Dashboard
 
-The dashboard displays multiple plots that update live during training.
+The dashboard provides a live, interactive view of training dynamics and updates continuously while training is running.
 
 Currently implemented plots:
 - **Training loss** vs Iteration
@@ -16,11 +16,28 @@ Currently implemented plots:
 - **Gradient norm test** (measuring signal-to-noise)
 - **Gradient distribution** (1D histogram)
 
-The dashboard automatically links the X-axis (Iteration) for all relevant plots, ensuring synchronized visualization of the training progress.
+All plots that use Iteration on the X-axis are automatically linked, ensuring a synchronized view of training progress across metrics. Axis limits are automatically adjusted during training to keep all data visible.
 
 ---
 
 ## Makie integration
 
-The package uses Makie.jl and observable variables to enable live updates of plots
-as training progresses.
+The package uses Makie.jl and observable variables to enable live updates.
+
+## Dashboard execution (internal)
+
+Visualization is handled by a dedicated render loop that updates plots
+continuously while training is running. This loop is decoupled from the
+optimization process to avoid blocking training.
+
+Training and visualization communicate via a Channel.
+At each iteration, the training loop sends:
+  - the current step index
+  - a dictionary containing the values of the tracked quantities
+
+Scalar quantities are appended to time series plots. Vector-valued quantities (such as gradient histograms) replace the current plot data.
+
+The dashboard is rendered using WGLMakie and served in a
+browser via Bonito.
+
+

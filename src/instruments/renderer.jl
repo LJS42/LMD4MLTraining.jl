@@ -6,17 +6,34 @@ function _pick_free_port()
     return port
 end
 
-"""
-    run_dashboard(channel, ready_channel, quantities)
-Initialize and run the dashboard on the current process.
-"""
+
+#Internal. Initialize and run the dashboard on the current process.
 function _run_dashboard(
     channel::Union{Channel,RemoteChannel},
     ready_channel::RemoteChannel,
     quantities::Vector{<:AbstractQuantity},
 )
     fig, axes_dict = build_dashboard(quantities)
-    observables = _initialize_plots(axes_dict)
+    
+    for ax in values(axes_dict)
+        Makie.activate_interaction!(ax, :dragpan)
+        Makie.activate_interaction!(ax, :scrollzoom)
+    end
+    inspector = DataInspector(fig) #hover info
+
+    observables, plots = _initialize_plots(axes_dict)
+
+    if haskey(axes_dict, CombinedQuantity) && haskey(axes_dict, UpdateSizeOverlay)
+        ax = axes_dict[CombinedQuantity]
+        axislegend(
+            ax,
+            [plots[CombinedQuantity], plots[UpdateSizeOverlay]],
+            ["Distance", "Update size"];
+            position = :lt,       
+            backgroundcolor = RGBAf(0.10, 0.11, 0.16, 0.95),
+            label_color = RGBf(0.90, 0.93, 0.98),
+        )
+    end
 
     if !haskey(ENV, "CI")
         WGLMakie.activate!(resize_to = :body)
@@ -69,22 +86,24 @@ function _run_dashboard(
     _render_loop(channel, fig, axes_dict, quantities, observables)
 end
 
-"""
-    initialize_plots(axes_dict) -> observables
-Initialize line plots on the provided axes and return a dictionary of observables.
-"""
+#Initialize line plots on the provided axes and return a dictionary of observables.
 function _initialize_plots(axes_dict::Dict{DataType,Axis})
     observables = Dict{DataType,Observable}()
+    plots = Dict{DataType,Any}()
+
     for (q_type, ax) in axes_dict
         obs = Observable(Point2f[])
+        
         if q_type == CombinedQuantity
-            scatter!(ax, obs, color = RGBf(0.54, 0.71, 0.98)) # Blue
+            plot = lines!(ax, obs, color = RGBf(0.54, 0.71, 0.98)) # Blue
+            plots[CombinedQuantity] = plot
         elseif q_type == UpdateSizeOverlay
-            scatter!(ax, obs, color = RGBf(0.96, 0.76, 0.91)) # Pink
+            plot = lines!(ax, obs, color = RGBf(0.96, 0.76, 0.91)) # Pink
+            plots[UpdateSizeOverlay] = plot
         elseif q_type == LossQuantity
             lines!(ax, obs, color = RGBf(0.54, 0.71, 0.98)) # Blue
         elseif q_type == DistanceQuantity
-            scatter!(ax, obs, color = RGBf(0.98, 0.70, 0.53)) # Peach
+            lines!(ax, obs, color = RGBf(0.98, 0.70, 0.53)) # Peach
         elseif q_type == GradNormQuantity
             lines!(ax, obs, color = RGBf(0.65, 0.89, 0.63)) # Green
         elseif q_type == GradHist1dQuantity
@@ -93,14 +112,13 @@ function _initialize_plots(axes_dict::Dict{DataType,Axis})
             lines!(ax, obs, color = RGBf(0.54, 0.71, 0.98)) # Blue default
         end
         observables[q_type] = obs
+
     end
-    return observables
+    return observables, plots
 end
 
-"""
-    render_loop(channel, fig, axes_dict, quantities, observables)
-Consume training updates from `channel` and update the dashboard in real time.
-"""
+
+#Internal. Consume training updates from `channel` and update the dashboard in real time.
 function _render_loop(
     channel::Union{Channel,RemoteChannel},
     fig::Figure,

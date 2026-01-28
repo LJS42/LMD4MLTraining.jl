@@ -59,10 +59,8 @@ plot_title(::CombinedQuantity) = "Parameter distances"
 ylabel(::CombinedQuantity) = ylabel(DistanceQuantity())
 overlay_ylabel(::CombinedQuantity) = ylabel(UpdateSizeQuantity())
 
-"""
-    _quantities_to_objects(quantites) -> objs
-Internal. Converts raw list of quantities to track into dashboard plot objects.
-"""
+
+#Internal. Converts raw list of quantities to track into dashboard plot objects.
 function _quantities_to_objects(qs::Vector{<:AbstractQuantity})
     objs = AbstractQuantity[]
     seen = Set{DataType}()
@@ -95,10 +93,7 @@ function _quantities_to_objects(qs::Vector{<:AbstractQuantity})
     end
 end
 
-"""
-    _objects_to panels(objs)-> panels
-Internal. Group objects in dashboard panels if belonging to the same class (step size or gradients).
-"""
+#Internal. Group objects in dashboard panels if belonging to the same class (step size or gradients).
 function _objects_to_panels(objs::Vector{<:AbstractQuantity})
     steps = [o for o in objs if plot_class(o) == CLASS_STEPSIZE]
     grads = [o for o in objs if plot_class(o) == CLASS_GRADIENT]
@@ -221,17 +216,17 @@ Construct the dashboard layout for the given quantities and return the figure an
 function build_dashboard(qs::Vector{<:AbstractQuantity})
     set_theme!(
         Theme(
-            fontsize = 10,
+            fontsize = 11,
             Axis = (
                 xgridvisible = true,
                 ygridvisible = true,
                 xgridcolor = GRID,
                 ygridcolor = GRID,
-                xticklabelsize = 9,
-                yticklabelsize = 9,
-                xlabelsize = 10,
-                ylabelsize = 10,
-                titlesize = 12,
+                xticklabelsize = 10,
+                yticklabelsize = 10,
+                xlabelsize = 11,
+                ylabelsize = 11,
+                titlesize = 13,
                 xtickcolor = TX_TICKS,
                 ytickcolor = TX_TICKS,
                 xticklabelcolor = TX_TICKS,
