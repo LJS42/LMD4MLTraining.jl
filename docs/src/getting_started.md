@@ -42,7 +42,7 @@ pkg> instantiate
 You can run the provided MNIST example to see the dashboard in action without cloning the repository. Copy and paste the following command into your terminal:
 
 ```bash
-julia -e 'using Pkg; Pkg.activate(temp=true); Pkg.add([Pkg.PackageSpec(url="https://github.com/LJS42/LMD4MLTraining.jl"), "Flux", "MLDatasets"]); include(download("https://raw.githubusercontent.com/LJS42/LMD4MLTraining.jl/main/examples/mnist.jl"))'
+julia -e 'using Pkg; Pkg.activate(temp=true); Pkg.add([Pkg.PackageSpec(url="https://github.com/LJS42/LMD4MLTraining.jl"), Pkg.PackageSpec(name="Flux"), Pkg.PackageSpec(name="MLDatasets")]); include(download("https://raw.githubusercontent.com/LJS42/LMD4MLTraining.jl/main/examples/mnist.jl"))'
 ```
 
 If you have already cloned the repository, you can run it using:
