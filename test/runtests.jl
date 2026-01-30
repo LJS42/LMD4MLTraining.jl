@@ -6,5 +6,6 @@ using Test
     include("test_utils.jl")
     include("test_quantities.jl")
     include("test_learner.jl")
+    include("test_learner_validation.jl")
     include("test_dashboard.jl")
 end
