@@ -56,15 +56,17 @@ using WGLMakie
             @test fig isa Figure
             @test !isempty(axes_dict)
 
-            observables = LMD4MLTraining._initialize_plots(axes_dict)
-            @test length(observables) >= length(qs)
+            observables, _ = LMD4MLTraining._initialize_plots(axes_dict)
+
+            @test !isempty(observables)
+            @test all(haskey(observables, k) for k in keys(axes_dict))
         end
     end
 
     @testset "Renderer Loop" begin
         quantities = [LossQuantity()]
         fig, axes_dict = LMD4MLTraining.build_dashboard(quantities)
-        observables = LMD4MLTraining._initialize_plots(axes_dict)
+        observables, _ = LMD4MLTraining._initialize_plots(axes_dict)
 
         # empty channel
         ch_empty = Channel{Tuple{Int,Dict{Symbol,LMD4MLTraining.QuantityValue}}}(1)
@@ -93,7 +95,7 @@ using WGLMakie
         quantities = [LossQuantity(), DistanceQuantity(), UpdateSizeQuantity(), q_hist]
 
         fig, axes_dict = LMD4MLTraining.build_dashboard(quantities)
-        observables = LMD4MLTraining._initialize_plots(axes_dict)
+        observables, _ = LMD4MLTraining._initialize_plots(axes_dict)
 
         ch = Channel{Tuple{Int,Dict{Symbol,LMD4MLTraining.QuantityValue}}}(10)
 
@@ -130,8 +132,8 @@ using WGLMakie
         LMD4MLTraining._render_loop(ch, fig, axes_dict, quantities, observables)
 
         @test length(observables[LossQuantity][]) == 2
-        @test haskey(observables, CombinedQuantity)
-        @test length(observables[CombinedQuantity][]) == 2
+        @test haskey(observables, LMD4MLTraining.CombinedQuantity)
+        @test length(observables[LMD4MLTraining.CombinedQuantity][]) == 2
         @test haskey(observables, LMD4MLTraining.UpdateSizeOverlay)
         @test length(observables[LMD4MLTraining.UpdateSizeOverlay][]) == 2
         @test haskey(observables, GradHist1dQuantity)
