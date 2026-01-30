@@ -235,6 +235,12 @@ function build_dashboard(qs::Vector{<:AbstractQuantity})
                 ylabelcolor = TX_MAIN,
                 titlecolor = TX_MAIN,
             ),
+            Legend = (
+                backgroundcolor = RGBAf(0.12, 0.12, 0.18, 0.9),
+                labelcolor = TX_MAIN,
+                titlecolor = TX_MAIN,
+                framecolor = BORDER,
+            ),
         ),
     )
 

@@ -30,8 +30,10 @@ function _run_dashboard(
             [plots[CombinedQuantity], plots[UpdateSizeOverlay]],
             ["Distance", "Update size"];
             position = :lt,       
-            backgroundcolor = RGBAf(0.10, 0.11, 0.16, 0.95),
-            label_color = RGBf(0.90, 0.93, 0.98),
+            backgroundcolor = RGBAf(0.12, 0.12, 0.18, 0.9),
+            labelcolor = TX_MAIN,
+            titlecolor = TX_MAIN,
+            framecolor = BORDER,
         )
     end
 
