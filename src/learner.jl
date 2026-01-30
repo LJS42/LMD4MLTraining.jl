@@ -15,9 +15,7 @@ struct Learner{M,D,F<:Function,P,Q<:Vector{<:AbstractQuantity}}
     quantities::Q
 end
 
-"""
-Validation helpers
-"""
+# Validation helpers
 function _validate_epochs(epochs::Int)
     epochs > 0 || throw(ArgumentError("epochs must be > 0, got $epochs"))
     return nothing
