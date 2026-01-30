@@ -25,10 +25,5 @@ GradHist1dQuantity
 ## Dashboard and Visualization
 
 ```@docs
-LMD4MLTraining._quantities_to_objects
-LMD4MLTraining._objects_to_panels
 LMD4MLTraining.build_dashboard
-LMD4MLTraining._run_dashboard
-LMD4MLTraining._initialize_plots
-LMD4MLTraining._render_loop
 ```
