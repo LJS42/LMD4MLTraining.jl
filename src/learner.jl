@@ -16,6 +16,30 @@ struct Learner{M,D,F<:Function,P,Q<:Vector{<:AbstractQuantity}}
 end
 
 """
+Validation helpers
+"""
+function _validate_epochs(epochs::Int)
+    epochs > 0 || throw(ArgumentError("epochs must be > 0, got $epochs"))
+    return nothing
+end
+
+function _validate_track_every(track_every::Int)
+    track_every > 0 || throw(ArgumentError("track_every must be > 0, got $track_every"))
+    return nothing
+end
+
+function _validate_dataloader_nonempty(data_loader)
+    iterate(data_loader) === nothing && throw(ArgumentError("data_loader is empty (no batches)."))
+    return nothing
+end
+
+# Checks model for trainable parameters
+function _validate_model(model)
+    isempty(Flux.trainables(model)) && throw(ArgumentError("model has no trainable parameters."))
+    return nothing
+end
+
+"""
     Learner(model, data_loader, loss_fn, optim)
 Convenience constructor for `Learner` without quantities.
 """
@@ -28,6 +52,11 @@ end
 Train a `Learner` for a number of epochs, optionally with live plotting.
 """
 function train!(learner::Learner, epochs::Int, with_plots::Bool, track_every::Int=1)
+    _validate_epochs(epochs)
+    _validate_track_every(track_every)
+    _validate_dataloader_nonempty(learner.data_loader)
+    _validate_model(learner.model)
+
     if with_plots
         # Multi-process setup: Dashboard happens on worker, Training on main
         if length(workers()) == 1 && workers()[1] == 1
@@ -107,6 +136,11 @@ function train_loop!(
     channel::Union{Channel{Tuple{Int,Dict{Symbol,QuantityValue}}},RemoteChannel,Nothing},
     track_every::Int,
 )
+    _validate_epochs(epochs)
+    _validate_track_every(track_every)
+    _validate_dataloader_nonempty(learner.data_loader)
+    _validate_model(learner.model)
+
     step_count = 0
     params0 = [copy(p) for p in Flux.trainables(learner.model)]
 
