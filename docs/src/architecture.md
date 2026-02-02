@@ -51,9 +51,9 @@ train!(learner, epochs, with_plots, track_every)
 
 The package provides several diagnostic quantities inspired by the "Cockpit" paper:
 
-| `LossQuantity()` | Tracks the training loss over time. |
-| `GradNormQuantity()` | Monitors the L2 norm of the gradients. |
-| `DistanceQuantity()` | Measures the L2 distance from the initialization. |
-| `UpdateSizeQuantity()` | Tracks the L2 norm of the parameter updates. |
-| `NormTestQuantity()` | Computes the "norm test" (checks if the gradient is dominated by noise). |
-| `GradHist1dQuantity()` | Visualizes the 1D distribution of gradient elements. |
+-  `LossQuantity()`: Tracks the training loss over time. 
+- `GradNormQuantity()` : Monitors the L2 norm of the gradients. 
+- `DistanceQuantity()` : Measures the L2 distance from the initialization. 
+- `UpdateSizeQuantity()` : Tracks the L2 norm of the parameter updates. 
+- `NormTestQuantity()` : Computes the "norm test" (checks if the gradient is dominated by noise). 
+- `GradHist1dQuantity()` : Visualizes the 1D distribution of gradient elements. 
